@@ -20,10 +20,8 @@ import os
 import math
 import numpy as np
 import scipy.ndimage as nd
-from skimage.restoration import (denoise_tv_chambolle, denoise_bilateral,
-                                 denoise_wavelet, estimate_sigma)
+import matplotlib.pyplot as plt
 from scipy.stats.mstats import mquantiles, kurtosis, skew
-from sklearn.preprocessing import LabelEncoder
 
 
 class GalaxyProcessor(object):
@@ -524,11 +522,11 @@ class GalaxyProcessor(object):
         # draw the outline of the object, then draw each of the
         # extreme points, where the left-most is red, right-most
         # is green, top-most is blue, and bottom-most is teal
-        cv2.drawContours(image, [c], -1, (0, 255, 255), 2)
-        cv2.circle(image, extLeft, 4, (0, 0, 255), -1)
-        cv2.circle(image, extRight, 4, (0, 255, 0), -1)
-        cv2.circle(image, extTop, 4, (255, 0, 0), -1)
-        cv2.circle(image, extBot, 4, (255, 255, 0), -1)
+        # cv2.drawContours(image, [c], -1, (0, 255, 255), 2)
+        # cv2.circle(image, extLeft, 4, (0, 0, 255), -1)
+        # cv2.circle(image, extRight, 4, (0, 255, 0), -1)
+        # cv2.circle(image, extTop, 4, (255, 0, 0), -1)
+        # cv2.circle(image, extBot, 4, (255, 255, 0), -1)
 
         points = image
         lenght_DimX = len(points)
@@ -597,6 +595,8 @@ class GalaxyProcessor(object):
         height, width, dim = img_color.shape
 
         clean_img = self.crop_image_with_extremes(img_color)
+        # clean_img = self.remove_starlight(clean_img, self.get_gray_image(clean_img))
+        not_cropped_img = self.remove_starlight(img_color, self.get_gray_image(img_color))
         cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/before_img.jpg", clean_img)
 
         clean_img = cv2.fastNlMeansDenoisingColored(clean_img, None, 10, 10, 7, 21)
@@ -605,16 +605,33 @@ class GalaxyProcessor(object):
         # A feature given to student as example. Not used in the following code.
         color_histogram = self.get_color_histogram(img_color=clean_img)
 
-        non_zero_blue = np.nonzero(color_histogram[0])
-        non_zero_red = np.nonzero(color_histogram[2])
-        mean_blue = np.mean(non_zero_blue)
-        mean_red = np.mean(non_zero_red)
+        # fig1 = plt.figure()
+        # plt.plot(color_histogram[0])
+        # fig1.savefig(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/blue.png")
+        #
+        # fig1 = plt.figure()
+        # plt.plot(color_histogram[2])
+        # fig1.savefig(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/red.png")
+
+        non_zero_blue_indexes = np.nonzero(color_histogram[0])[0]
+        non_zero_blue = color_histogram[0][non_zero_blue_indexes]
+        nb_blue_px = len(non_zero_blue[non_zero_blue > 15])
+        max_blue = color_histogram[0].max()
+
+        non_zero_red_indexes = np.nonzero(color_histogram[2])[0]
+        non_zero_red = color_histogram[0][non_zero_red_indexes]
+        nb_red_px = len(non_zero_red[non_zero_red > 15])
+        max_red = color_histogram[2].max()
+
+        mean_blue = np.mean(non_zero_blue[0])
+        mean_red = np.mean(non_zero_red[0])
 
         RB_ratio = mean_blue / mean_red
 
         entropy = self.get_entropy(self.get_gray_image(clean_img))
-        light_radius = self.get_light_radius(self.get_gray_image(clean_img))
-        fitted_ellipse_center, fitted_ellipse_singular_values, fitted_ellipse_angle = self.fit_ellipse(self.get_gray_float_image(clean_img))
+        light_radius = self.get_light_radius(self.get_gray_image(not_cropped_img))
+        light_radius_diff = light_radius[1] - light_radius[0]
+        # fitted_ellipse_center, fitted_ellipse_singular_values, fitted_ellipse_angle = self.fit_ellipse(self.get_gray_float_image(clean_img))
         gini_coeff = self.gini(self.get_gray_image(clean_img))
 
         # mean, eigvec = cv2.PCACompute(matrix_test, mean=None)
@@ -623,7 +640,7 @@ class GalaxyProcessor(object):
         # test = np.array([clean_img[center_y][center_x][0], clean_img[center_y][center_x][1], clean_img[center_y][center_x][2]])
         features1 = np.append(features1, RB_ratio)
         # features1 = np.append(features1, np.array([clean_img[center_y][center_x][0], clean_img[center_y][center_x][1], clean_img[center_y][center_x][2]]))
-        features2 = np.append(features2, light_radius)
+        features2 = np.append(features2, light_radius_diff)
 
         # features = np.append(features, features1)
         # features = np.append(features, features2)
