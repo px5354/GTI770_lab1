@@ -469,7 +469,30 @@ class GalaxyProcessor(object):
 
         return np.array([blue_histogram, green_histogram, red_histogram])
 
+    def gerv_shits(self, image):
+        img_gray = self.get_gray_float_image(image)
+        image = self.remove_starlight(image, img_gray)
+        image = self.crop_image_with_extremes(image)
+        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/image.jpg", image)
+
+        img = cv2.imread(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/image.jpg")
+        thresh = self.white_image(img)
+        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/thresh.jpg", thresh)
+
+        # ret, thresh = cv2.threshold(thresh, 127, 255, 0)
+        im2, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        cnt = contours[0]
+
+        rect = cv2.minAreaRect(cnt)
+        box = cv2.boxPoints(rect)
+        box = np.int0(box)
+        cv2.drawContours(img, [box], 0, (124, 252, 0), 2)
+
+        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/img_coutour.jpg", img)
+
     def white_image(self, image):
+
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
@@ -482,6 +505,7 @@ class GalaxyProcessor(object):
         return thresh
 
     def crop_image_with_extremes(self, image):
+
         # load the image, convert it to grayscale, and blur it slightly
         white_image = self.white_image(image)
 
@@ -500,19 +524,53 @@ class GalaxyProcessor(object):
         # draw the outline of the object, then draw each of the
         # extreme points, where the left-most is red, right-most
         # is green, top-most is blue, and bottom-most is teal
-        # cv2.drawContours(image, [c], -1, (0, 255, 255), 2)
-        # cv2.circle(image, extLeft, 4, (0, 0, 255), -1)
-        # cv2.circle(image, extRight, 4, (0, 255, 0), -1)
-        # cv2.circle(image, extTop, 4, (255, 0, 0), -1)
-        # cv2.circle(image, extBot, 4, (255, 255, 0), 1)
+        cv2.drawContours(image, [c], -1, (0, 255, 255), 2)
+        cv2.circle(image, extLeft, 4, (0, 0, 255), -1)
+        cv2.circle(image, extRight, 4, (0, 255, 0), -1)
+        cv2.circle(image, extTop, 4, (255, 0, 0), -1)
+        cv2.circle(image, extBot, 4, (255, 255, 0), -1)
 
-        x1 = extLeft[0] #- 10
-        x2 = extRight[0] #+ 10
-        y1 = extTop[1] #- 10
-        y2 = extBot[1] #+ 10
+        points = image
+        lenght_DimX = len(points)
+        lenght_DimY = len(points[0])
+
+        x1 = extLeft[0] - 10
+        if x1 < 0:
+            x1 = extLeft[0]
+
+        x2 = extRight[0] + 10
+        if x2 > lenght_DimX:
+            x1 = extRight[0]
+
+        y1 = extTop[1] - 10
+        if y1 < 0:
+            y1 = extTop[1]
+
+        y2 = extBot[1] + 10
+        if y2 > lenght_DimY:
+            y2 = extBot[1]
+
         image = image[y1:y2, x1:x2]
 
         return image
+
+    def correlation_image(self, image):
+        points = image.astype('float')
+
+        lenght_DimX = len(points)
+        lenght_DimY = len(points[0])
+
+        listX = []
+        listY = []
+
+        for x in range(0, lenght_DimX - 1):
+            for y in range(0, lenght_DimY - 1):
+                if points[x][y] > 250:
+                    listX.append(x)
+                    listY.append(y)
+
+        correlation = np.corrcoef(listX, listY)[0, 1]
+        return correlation
 
     def get_features(self, image_file, id, label):
         """ Get the image's features.
