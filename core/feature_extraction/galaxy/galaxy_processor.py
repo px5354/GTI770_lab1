@@ -15,12 +15,13 @@ Group :
     GTI770-H18-0X
 """
 
-import csv
-
 import cv2
+import os
 import math
 import numpy as np
 import scipy.ndimage as nd
+from skimage.restoration import (denoise_tv_chambolle, denoise_bilateral,
+                                 denoise_wavelet, estimate_sigma)
 from scipy.stats.mstats import mquantiles, kurtosis, skew
 from sklearn.preprocessing import LabelEncoder
 
@@ -46,6 +47,9 @@ class GalaxyProcessor(object):
              An array containing the image's features.
         """
         features = list()
+        features1 = list()
+        features2 = list()
+        labels = list()
 
         for sample, label in zip(dataset.train._img_names, dataset.train._labels):
 
@@ -53,8 +57,13 @@ class GalaxyProcessor(object):
             file = self.get_image_path() + str(sample[0]) + ".jpg"
 
             # Compute the features and append to the list.
-            feature_vector = self.get_features(file, sample[0], label[0])
-            features.append(feature_vector)
+            # feature_vector = self.get_features(file, sample[0], label[0])
+            # features.append(feature_vector)
+
+            feature1, feature2, label = self.get_features(file, sample[0], label[0])
+            features1.append(feature1)
+            features2.append(feature2)
+            labels.append(label)
 
         for sample, label in zip(dataset.valid._img_names, dataset.valid._labels):
 
@@ -62,12 +71,15 @@ class GalaxyProcessor(object):
             file = self.get_image_path() + str(sample[0]) + ".jpg"
 
             # Compute the features and append to the list.
-            feature_vector = self.get_features(file, sample[0], label[0])
-            features.append(feature_vector)
+            # feature_vector = self.get_features(file, sample[0], label[0])
+            # features.append(feature_vector)
 
+            feature_blue_vector, feature_entropy_vector, label = self.get_features(file, sample[0], label[0])
+            features1.append(feature1)
+            features2.append(feature2)
+            labels.append(label)
 
-
-        return features
+        return features1, features2, labels
 
     def load_image(self, filepath):
         """ Load an image using OpenCV library.
@@ -457,6 +469,51 @@ class GalaxyProcessor(object):
 
         return np.array([blue_histogram, green_histogram, red_histogram])
 
+    def white_image(self, image):
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)
+
+        # threshold the image, then perform a series of erosions +
+        # dilations to remove any small regions of noise
+        thresh = cv2.threshold(gray, 45, 255, cv2.THRESH_BINARY)[1]
+        thresh = cv2.erode(thresh, None, iterations=2)
+        thresh = cv2.dilate(thresh, None, iterations=2)
+
+        return thresh
+
+    def crop_image_with_extremes(self, image):
+        # load the image, convert it to grayscale, and blur it slightly
+        white_image = self.white_image(image)
+
+        # find contours in thresholded image, then grab the largest
+        # one
+        cnts = cv2.findContours(white_image.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnts = cnts[1]
+        c = max(cnts, key=cv2.contourArea)
+
+        # determine the most extreme points along the contour
+        extLeft = tuple(c[c[:, :, 0].argmin()][0])
+        extRight = tuple(c[c[:, :, 0].argmax()][0])
+        extTop = tuple(c[c[:, :, 1].argmin()][0])
+        extBot = tuple(c[c[:, :, 1].argmax()][0])
+
+        # draw the outline of the object, then draw each of the
+        # extreme points, where the left-most is red, right-most
+        # is green, top-most is blue, and bottom-most is teal
+        # cv2.drawContours(image, [c], -1, (0, 255, 255), 2)
+        # cv2.circle(image, extLeft, 4, (0, 0, 255), -1)
+        # cv2.circle(image, extRight, 4, (0, 255, 0), -1)
+        # cv2.circle(image, extTop, 4, (255, 0, 0), -1)
+        # cv2.circle(image, extBot, 4, (255, 255, 0), 1)
+
+        x1 = extLeft[0] #- 10
+        x2 = extRight[0] #+ 10
+        y1 = extTop[1] #- 10
+        y2 = extBot[1] #+ 10
+        image = image[y1:y2, x1:x2]
+
+        return image
+
     def get_features(self, image_file, id, label):
         """ Get the image's features.
 
@@ -475,12 +532,44 @@ class GalaxyProcessor(object):
 
         # Declare a list for storing computed features.
         features = list()
+        features1 = list()
+        features2 = list()
 
         img_color = cv2.imread(filename=image_file)
+        height, width, dim = img_color.shape
+
+        clean_img = self.crop_image_with_extremes(img_color)
+        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/before_img.jpg", clean_img)
+
+        clean_img = cv2.fastNlMeansDenoisingColored(clean_img, None, 10, 10, 7, 21)
+        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/after_img.jpg", clean_img)
 
         # A feature given to student as example. Not used in the following code.
-        color_histogram = self.get_color_histogram(img_color=img_color)
+        color_histogram = self.get_color_histogram(img_color=clean_img)
 
-        features = np.append(features, color_histogram)
-        
-        return features
+        non_zero_blue = np.nonzero(color_histogram[0])
+        non_zero_red = np.nonzero(color_histogram[2])
+        mean_blue = np.mean(non_zero_blue)
+        mean_red = np.mean(non_zero_red)
+
+        RB_ratio = mean_blue / mean_red
+
+        entropy = self.get_entropy(self.get_gray_image(clean_img))
+        light_radius = self.get_light_radius(self.get_gray_image(clean_img))
+        fitted_ellipse_center, fitted_ellipse_singular_values, fitted_ellipse_angle = self.fit_ellipse(self.get_gray_float_image(clean_img))
+        gini_coeff = self.gini(self.get_gray_image(clean_img))
+
+        # mean, eigvec = cv2.PCACompute(matrix_test, mean=None)
+
+        center_y, center_x = int(height/2) - 1, int(width/2) - 1
+        # test = np.array([clean_img[center_y][center_x][0], clean_img[center_y][center_x][1], clean_img[center_y][center_x][2]])
+        features1 = np.append(features1, RB_ratio)
+        # features1 = np.append(features1, np.array([clean_img[center_y][center_x][0], clean_img[center_y][center_x][1], clean_img[center_y][center_x][2]]))
+        features2 = np.append(features2, light_radius)
+
+        # features = np.append(features, features1)
+        # features = np.append(features, features2)
+        # sat_img = self.saturate(img_color, 0.95, 1)
+        # cv2.imwrite(os.environ["VIRTUAL_ENV"] +"/data/csv/galaxy/sat_img.jpg", sat_img)
+        # return features
+        return features1, features2, label
