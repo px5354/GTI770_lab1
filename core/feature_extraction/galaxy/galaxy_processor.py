@@ -621,9 +621,21 @@ class GalaxyProcessor(object):
 
     def get_mean(self, color_histogram, color):
 
-        mean = np.mean(self.get_nonZeroHistogramIndexes(color_histogram, color))
+        mean = np.mean(self.get_nonZeroHistogramValues(color_histogram, color))
 
         return mean
+
+    def get_img_contrast(self, image_file,enhanceNumber):
+
+        pil_image = Image.open(image_file).convert('RGB')
+        converter = ImageEnhance.Color(pil_image)
+        pil_image = converter.enhance(enhanceNumber)
+        open_cv_image = np.array(pil_image)
+        # Convert RGB to BGR
+        img_color_contrast = open_cv_image[:, :, ::-1].copy()
+
+
+        return img_color_contrast
 
     def remove_little_area(self, image):
         # find all your connected components (white blobs in your image)
@@ -696,21 +708,19 @@ class GalaxyProcessor(object):
         features5 = list()
         features6 = list()
 
-        # pil_image = Image.open(image_file).convert('RGB')
-        # converter = ImageEnhance.Color(pil_image)
-        # pil_image = converter.enhance(1.5)
-        # open_cv_image = np.array(pil_image)
-        # Convert RGB to BGR
-        # img_color = open_cv_image[:, :, ::-1].copy()
+        # CONTRAST
+        # img_color_contrast = self.get_img_contrast(image_file,1.5)
+        # cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/contrast_img.jpg", img_color_contrast)
+
 
         img_color = cv2.imread(filename=image_file)
         # test_ccv = ccv(img_color)
         height, width, dim = img_color.shape
-
         cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/before_img.jpg", img_color)
+        img_color = self.gaussian_filter(img_color, -100, -100)
         img_color = self.remove_starlight(img_color, self.get_gray_image(img_color))
         img_color = cv2.fastNlMeansDenoisingColored(img_color, None, 2, 2, 7, 21)
-        img_color = self.gaussian_filter(img_color, -100, -100)
+
 
         clean_img = self.crop_image_with_extremes(img_color)
 
@@ -757,6 +767,8 @@ class GalaxyProcessor(object):
         std_red = non_zero_red.std()
         std_blue = non_zero_blue.std()
 
+        std_RB_ratio = std_red / std_blue
+
         RB_ratio = mean_red / mean_blue
 
 
@@ -764,7 +776,7 @@ class GalaxyProcessor(object):
         AR = self.get_aspect_ratio(white_img)
 
         entropy = self.get_entropy(self.get_gray_image(clean_img))
-        light_radius = self.get_light_radius(self.get_gray_image(not_cropped_img))
+        light_radius = self.get_light_radius(self.get_gray_image(clean_img))
         light_radius_diff = light_radius[1] - light_radius[0]
         # fitted_ellipse_center, fitted_ellipse_singular_values, fitted_ellipse_angle = self.fit_ellipse(self.get_gray_float_image(clean_img))
         gini_coeff = self.gini(self.get_gray_image(clean_img))
