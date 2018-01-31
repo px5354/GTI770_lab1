@@ -583,6 +583,49 @@ class GalaxyProcessor(object):
         correlation = np.corrcoef(listX, listY)[0, 1]
         return correlation
 
+    def get_nonZeroHistogramIndexes(self, color_histogram, color):
+
+
+        if(color == "blue"):
+            colorIndex = 0
+        if (color == "green"):
+            colorIndex = 1
+        if (color == "red"):
+            colorIndex = 2
+
+        histogramIndexes = np.nonzero(color_histogram[colorIndex])[0]
+
+        return histogramIndexes
+
+    def get_nonZeroHistogramValues(self, color_histogram, color):
+
+        if (color == "blue"):
+            colorIndex = 0
+        if (color == "green"):
+            colorIndex = 1
+        if (color == "red"):
+            colorIndex = 2
+
+        histogramIndexes = self.get_nonZeroHistogramIndexes(color_histogram, color)
+
+        histogramValues = color_histogram[colorIndex][histogramIndexes]
+
+        return histogramValues
+
+    def get_histogramPixelCount(self, color_histogram, color):
+
+        pixelCount = len(self.get_nonZeroHistogramValues(color_histogram, color))
+
+        return pixelCount
+
+    def get_mean(self, color_histogram, color):
+
+        mean = np.mean(self.get_nonZeroHistogramIndexes(color_histogram, color))
+
+        return mean
+
+
+
     def get_features(self, image_file, id, label):
         """ Get the image's features.
 
@@ -618,10 +661,11 @@ class GalaxyProcessor(object):
         img_color_before = cv2.imread(filename=image_file)
 
         height, width, dim = img_color.shape
-
+        img_color = self.remove_starlight(img_color, self.get_gray_image(img_color))
+        img_color = self.gaussian_filter(img_color, -100, -100)
         cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/before_img.jpg", img_color_before)
         clean_img = self.crop_image_with_extremes(img_color)
-        # clean_img = self.remove_starlight(clean_img, self.get_gray_image(clean_img))
+
         not_cropped_img = self.remove_starlight(img_color, self.get_gray_image(img_color))
 
 
@@ -632,40 +676,39 @@ class GalaxyProcessor(object):
         # A feature given to student as example. Not used in the following code.
         color_histogram = self.get_color_histogram(img_color=clean_img)
 
-        # fig1 = plt.figure()
-        # plt.plot(color_histogram[0])
-        # fig1.savefig(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/blue.png")
-        #
-        # fig1 = plt.figure()
-        # plt.plot(color_histogram[2])
-        # fig1.savefig(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/red.png")
+        fig1 = plt.figure()
+        plt.plot(color_histogram[0])
+        fig1.savefig(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/blue.png")
 
-        non_zero_blue_indexes = np.nonzero(color_histogram[0])[0]
-        non_zero_blue = color_histogram[0][non_zero_blue_indexes]
-        nb_blue_px = len(non_zero_blue)
+
+        fig1 = plt.figure()
+        plt.plot(color_histogram[2])
+        fig1.savefig(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/red.png")
+
+        non_zero_blue_indexes = self.get_nonZeroHistogramIndexes(color_histogram, "blue")
+        non_zero_blue = self.get_nonZeroHistogramValues(color_histogram, "blue")
+        px_blue_count = self.get_histogramPixelCount(color_histogram, "blue")
+
         max_blue_x = non_zero_blue_indexes.max()
         max_blue = color_histogram[0].max()
-        max_blue_index = color_histogram[0].argmax(axis=0)[0]
 
-        # non_zero_green_indexes = np.nonzero(color_histogram[1])[0]
-        # non_zero_green = color_histogram[1][non_zero_green_indexes]
-        # nb_green_px = len(non_zero_green)
-        # max_green_x = non_zero_green[len(non_zero_green) - 1]
-        # max_green = color_histogram[1].max()
-        # max_green_index = color_histogram[1].argmax(axis=0)[0]
+        non_zero_red_indexes = self.get_nonZeroHistogramIndexes(color_histogram, "red")
+        non_zero_red = self.get_nonZeroHistogramValues(color_histogram, "red")
+        px_red_count = self.get_histogramPixelCount(color_histogram, "red")
 
-        non_zero_red_indexes = np.nonzero(color_histogram[2])[0]
-        non_zero_red = color_histogram[0][non_zero_red_indexes]
-        nb_red_px = len(non_zero_red)
         max_red_x = non_zero_red_indexes.max()
         max_red = color_histogram[2].max()
-        max_red_index = color_histogram[2].argmax(axis=0)[0]
 
-        mean_blue = np.mean(non_zero_blue)
-        # mean_green = np.mean(non_zero_green[1:])
+        mean_blue = self.get_mean(color_histogram, "blue")
+
         mean_red = np.mean(non_zero_red)
 
-        RB_ratio = mean_blue / mean_red
+        std_red = non_zero_red.std()
+        std_blue = non_zero_blue.std()
+
+        RB_ratio = mean_red / mean_blue
+
+
 
         entropy = self.get_entropy(self.get_gray_image(clean_img))
         light_radius = self.get_light_radius(self.get_gray_image(not_cropped_img))
@@ -682,8 +725,8 @@ class GalaxyProcessor(object):
         features2 = np.append(features2, light_radius_diff)
         features3 = np.append(features3, entropy)
         features4 = np.append(features4, gini_coeff)
-        features5 = np.append(features5, max_blue_x)
-        features6 = np.append(features6, max_red_x)
+        features5 = np.append(features5, mean_blue)
+        features6 = np.append(features6, std_blue)
         features_array = [features1, features2, features3, features4, features5, features6]
         # features = np.append(features, features1)
         # features = np.append(features, features2)
