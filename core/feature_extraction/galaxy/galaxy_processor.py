@@ -65,14 +65,21 @@ class GalaxyProcessor(object):
             # features.append(feature_vector)
 
             features_array, label = self.get_features(file, sample[0], label[0])
-            features1.append(features_array[0])
-            features2.append(features_array[1])
-            features3.append(features_array[2])
-            features4.append(features_array[3])
-            features5.append(features_array[4])
-            features6.append(features_array[5])
-            features7.append(features_array[6])
-            features8.append(features_array[7])
+            num_of_features = len(features_array)
+            if len(features) != num_of_features:
+                features = [[] for _ in range(num_of_features)]
+
+            for i in range(0, num_of_features):
+                features[i].append(features_array[i])
+
+            # features1.append(features_array[0])
+            # features2.append(features_array[1])
+            # features3.append(features_array[2])
+            # features4.append(features_array[3])
+            # features5.append(features_array[4])
+            # features6.append(features_array[5])
+            # features7.append(features_array[6])
+            # features8.append(features_array[7])
             labels.append(label)
 
         for sample, label in zip(dataset.valid._img_names, dataset.valid._labels):
@@ -85,17 +92,21 @@ class GalaxyProcessor(object):
             # features.append(feature_vector)
 
             feature_array, label = self.get_features(file, sample[0], label[0])
-            features1.append(features_array[0])
-            features2.append(features_array[1])
-            features3.append(features_array[2])
-            features4.append(features_array[3])
-            features5.append(features_array[4])
-            features6.append(features_array[5])
-            features7.append(features_array[6])
-            features8.append(features_array[7])
+
+            features[i].append(features_array[i])
+
+            # features1.append(features_array[0])
+            # features2.append(features_array[1])
+            # features3.append(features_array[2])
+            # features4.append(features_array[3])
+            # features5.append(features_array[4])
+            # features6.append(features_array[5])
+            # features7.append(features_array[6])
+            # features8.append(features_array[7])
             labels.append(label)
-        feature_array_final = [features1, features2, features3, features4, features5, features6]
-        return feature_array_final, labels
+
+        # feature_array_final = [features1, features2, features3, features4, features5, features6]
+        return features, labels
 
     def load_image(self, filepath):
         """ Load an image using OpenCV library.
@@ -706,13 +717,15 @@ class GalaxyProcessor(object):
         print("Processing file : " + image_file)
 
         # Declare a list for storing computed features.
-        features = list()
+        # features = list()
         features1 = list()
         features2 = list()
         features3 = list()
         features4 = list()
         features5 = list()
         features6 = list()
+        features7 = list()
+        features8 = list()
 
         # CONTRAST
         # img_color_contrast = self.get_img_contrast(image_file,1.5)
@@ -797,14 +810,9 @@ class GalaxyProcessor(object):
         features4 = np.append(features4, gini_coeff)
         features5 = np.append(features5, AR)
         features6 = np.append(features6, std_RB_ratio)
-        features7 = np.append(features5, max_blue_x)
-        features8 = np.append(features5, max_red_x)
+        features7 = np.append(features7, max_blue_x)
+        features8 = np.append(features8, max_red_x)
 
-        features_array = [features1, features2, features3, features4, features5, features6, features7, features8]
+        features = [features1, features2, features3, features4, features5, features6, features7, features8]
 
-        # features = np.append(features, features1)
-        # features = np.append(features, features2)
-        # sat_img = self.saturate(img_color, 0.95, 1)
-        # cv2.imwrite(os.environ["VIRTUAL_ENV"] +"/data/csv/galaxy/sat_img.jpg", sat_img)
-        # return features
-        return features_array, label
+        return features, label

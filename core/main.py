@@ -131,7 +131,7 @@ def main():
     # # Process galaxies.
     galaxy_processor = GalaxyProcessor(galaxy_images_path)
     # features = galaxy_processor.process_galaxy(label_dataset)
-    feature_array, labels = galaxy_processor.process_galaxy(label_dataset)
+    features, labels = galaxy_processor.process_galaxy(label_dataset)
 
     # # Save extracted features to file.
     # np.savetxt(galaxy_feature_vector_export_path, features, delimiter=",")
@@ -150,9 +150,9 @@ def main():
     stop = timeit.default_timer()
     print(stop - start)
 
-    for i in range(1, 9):
+    for i in range(0, len(features)):
         temp_filepath = galaxy_feature_vector_path + str(i) +".csv"
-        np.savetxt(temp_filepath, feature_array[i], delimiter=",")
+        np.savetxt(temp_filepath, features[i], delimiter=",")
         print("File saved in directory " + temp_filepath)
     # np.savetxt(galaxy_feature2_vector_path, feature_array[1], delimiter=",")
     # print("File saved in directory " + galaxy_feature2_vector_path)
