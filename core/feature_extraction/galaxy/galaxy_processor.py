@@ -22,7 +22,7 @@ import os
 import math
 import numpy as np
 import scipy.ndimage as nd
-import matplotlib.pyplot as plt
+import multiprocessing
 from PIL import ImageEnhance, Image
 from scipy.stats.mstats import mquantiles, kurtosis, skew
 
@@ -625,7 +625,7 @@ class GalaxyProcessor(object):
 
         return img2
 
-    def black_proportion(self, image):
+    def get_black_proportion(self, image):
         """ GIve proportion of black in the image.
 
         Using some image proporties to calculate the proportion
@@ -652,7 +652,7 @@ class GalaxyProcessor(object):
 
         return proportion
 
-    def circularity(self, image):
+    def get_circularity(self, image):
         """ Give the circularity of the shape in the image.
 
         Using OpenCV findContours to get the shape of the image.
@@ -676,7 +676,20 @@ class GalaxyProcessor(object):
 
         return circularity
 
-    def get_nonZeroHistogramIndexes(self, color_histogram, color):
+    def get_aspect_ratio(self, image):
+
+        white_image = self.white_image(image)
+        im2, contours, hierarchy = cv2.findContours(white_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnt = contours[0]
+        rect = cv2.minAreaRect(cnt)
+        width = rect[1][0]
+        height = rect[1][1]
+        ar = width/height
+
+        return ar
+
+
+    def get_non_zero_histogram_indexes(self, color_histogram, color):
 
         if(color == "blue"):
             colorIndex = 0
@@ -689,7 +702,7 @@ class GalaxyProcessor(object):
 
         return histogramIndexes
 
-    def get_nonZeroHistogramValues(self, color_histogram, color):
+    def get_non_zero_histogram_values(self, color_histogram, color):
 
         if (color == "blue"):
             colorIndex = 0
@@ -698,21 +711,21 @@ class GalaxyProcessor(object):
         if (color == "red"):
             colorIndex = 2
 
-        histogramIndexes = self.get_nonZeroHistogramIndexes(color_histogram, color)
+        histogramIndexes = self.get_non_zero_histogram_indexes(color_histogram, color)
 
         histogramValues = color_histogram[colorIndex][histogramIndexes]
 
         return histogramValues
 
-    def get_histogramPixelCount(self, color_histogram, color):
+    def get_histogram_pixel_count(self, color_histogram, color):
 
-        pixelCount = len(self.get_nonZeroHistogramValues(color_histogram, color))
+        pixelCount = len(self.get_non_zero_histogram_values(color_histogram, color))
 
         return pixelCount
 
     def get_mean(self, color_histogram, color):
 
-        mean = np.mean(self.get_nonZeroHistogramValues(color_histogram, color))
+        mean = np.mean(self.get_non_zero_histogram_values(color_histogram, color))
 
         return mean
 
@@ -727,11 +740,69 @@ class GalaxyProcessor(object):
 
         return img_color_contrast
 
-    def get_aspect_ratio(self, image):
-        height, width = image.shape
-        return width / height
+    def features_color_RB_ratio(self, image, queue):
+        """ Color features
 
-    def feature_circularity(self, image):
+        Using home made methods to prepare the image.
+
+        Args:
+            image: an OpenCV standard image format.
+
+        Returns:
+            the max blue bin, the max red bin, the red to blue ratio and red to blue standard deviation
+        """
+
+        img_color = image
+        img_color = self.gaussian_filter(img_color, -100, -100)
+        img_color = self.remove_starlight(img_color, self.get_gray_image(img_color))
+        img_color = cv2.fastNlMeansDenoisingColored(img_color, None, 2, 2, 7, 21)
+        clean_img = self.crop_image_with_extremes(img_color, 0)
+
+        color_histogram = self.get_color_histogram(img_color=clean_img)
+
+        non_zero_blue = self.get_non_zero_histogram_values(color_histogram, "blue")
+        non_zero_red = self.get_non_zero_histogram_values(color_histogram, "red")
+
+        mean_blue = self.get_mean(color_histogram, "blue")
+        mean_red = self.get_mean(color_histogram, "red")
+        RB_ratio = mean_red / mean_blue
+
+        queue.put(RB_ratio)
+
+        return RB_ratio
+
+    def features_color_std_RB_ratio(self, image, queue):
+        """ Color features
+
+        Using home made methods to prepare the image.
+
+        Args:
+            image: an OpenCV standard image format.
+
+        Returns:
+            the max blue bin, the max red bin, the red to blue ratio and red to blue standard deviation
+        """
+
+        img_color = image
+        img_color = self.gaussian_filter(img_color, -100, -100)
+        img_color = self.remove_starlight(img_color, self.get_gray_image(img_color))
+        img_color = cv2.fastNlMeansDenoisingColored(img_color, None, 2, 2, 7, 21)
+        clean_img = self.crop_image_with_extremes(img_color, 0)
+
+        color_histogram = self.get_color_histogram(img_color=clean_img)
+
+        non_zero_blue = self.get_non_zero_histogram_values(color_histogram, "blue")
+        non_zero_red = self.get_non_zero_histogram_values(color_histogram, "red")
+
+        std_red = non_zero_red.std()
+        std_blue = non_zero_blue.std()
+        std_RB_ratio = std_red / std_blue
+
+        queue.put(std_RB_ratio)
+
+        return std_RB_ratio
+
+    def feature_circularity(self, image, queue):
         """ Feature to give the circularity
 
         Using home made methods to prepare the image.
@@ -750,8 +821,10 @@ class GalaxyProcessor(object):
         clean_image = self.remove_little_shapes(white_image)
         cv2.imwrite(temp_path, clean_image)
         final_image = cv2.imread(temp_path)
-        circularity = self.circularity(final_image)
+        circularity = self.get_circularity(final_image)
         cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/circularity_image.jpg", final_image)
+
+        queue.put(circularity)
 
         return circularity
 
@@ -777,7 +850,34 @@ class GalaxyProcessor(object):
 
         return correlation
 
-    def feature_black_proportion(self, image):
+    def feature_aspect_ratio(self, image, queue):
+        """ Feature to give the aspect ratio
+
+        Using home made methods to prepare the image.
+
+        Args:
+            image: an OpenCV standard image format.
+
+        Returns:
+            The aspect ratio.
+        """
+
+        temp_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/temp_image.jpg"
+        original_image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
+        cropped_img = self.crop_image_with_extremes(original_image, 10)
+        white_image = self.white_image(cropped_img)
+        clean_image = self.remove_little_shapes(white_image)
+        cv2.imwrite(temp_path, clean_image)
+        final_image = cv2.imread(temp_path)
+        ar = self.get_aspect_ratio(final_image)
+
+        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/aspect_ratio_image.jpg", clean_image)
+
+        queue.put(ar)
+
+        return ar
+
+    def feature_black_proportion(self, image, queue):
         """ Feature to give the black proportion
 
         Using home made methods to prepare the image
@@ -793,9 +893,29 @@ class GalaxyProcessor(object):
         cropped_img = self.crop_image_with_extremes(original_image, 0)
         white_image = self.white_image(cropped_img)
         clean_image = self.remove_little_shapes(white_image)
-        proportion = self.black_proportion(clean_image)
+        proportion = self.get_black_proportion(clean_image)
+
+        queue.put(proportion)
 
         return proportion
+
+    def feature_entropy(self, image, queue):
+
+        original_image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
+        cropped_img = self.crop_image_with_extremes(original_image, 0)
+        entropy = self.get_entropy(self.get_gray_image(cropped_img))
+
+        queue.put(entropy)
+
+        return entropy
+
+    def feature_gini(self, image):
+
+        original_image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
+        cropped_img = self.crop_image_with_extremes(original_image, 0)
+        gini = self.gini(self.get_gray_image(cropped_img))
+
+        return gini
 
     def get_features(self, image_file, id, label):
         """ Get the image's features.
@@ -815,111 +935,87 @@ class GalaxyProcessor(object):
 
         original_image = cv2.imread(filename=image_file)
 
-        circularity = self.feature_circularity(original_image)
-        correlation = self.feature_correlation(original_image)
-        proportion = self.feature_black_proportion(original_image)
+        queue = multiprocessing.Queue()
 
+        a = multiprocessing.Process(
+            target=self.features_color_RB_ratio,
+            args=(original_image,queue)
+        )
+        b = multiprocessing.Process(
+            target=self.features_color_std_RB_ratio,
+            args=(original_image,queue)
+        )
+        c = multiprocessing.Process(
+            target=self.feature_circularity,
+            args=(original_image,queue)
+        )
+        d = multiprocessing.Process(
+            target=self.feature_black_proportion,
+            args=(original_image,queue)
+        )
+        e = multiprocessing.Process(
+            target=self.feature_aspect_ratio,
+            args=(original_image,queue)
+        )
+        f = multiprocessing.Process(
+            target=self.feature_entropy,
+            args=(original_image,queue)
+        )
+        a.start()
+        b.start()
+        c.start()
+        d.start()
+        e.start()
+        f.start()
+
+        a.join()
+        b.join()
+        c.join()
+        d.join()
+        e.join()
+        f.join()
+
+        RB_ratio = queue.get()
+        std_RB_ratio = queue.get()
+        circularity = queue.get()
+        black_proportion = queue.get()
+        aspect_ratio = queue.get()
+        entropy = queue.get()
+
+
+        # RB_ratio, std_RB_ratio = self.features_color(original_image)
+        # circularity = self.feature_circularity(original_image)
+        # # correlation = self.feature_correlation(original_image)
+        # black_proportion = self.feature_black_proportion(original_image)
+        # aspect_ratio = self.feature_aspect_ratio(original_image)
+        # entropy = self.feature_entropy(original_image)
+        # # gini_coeff = self.featur
+
+        print("RB RATIO: " + repr(RB_ratio))
+        print("STD RB RATIO: " + repr(std_RB_ratio))
         print("CIRCULARIY: " + repr(circularity))
-        print("CORRELATION: " + repr(correlation))
-        print("PROPORTION: " + repr(proportion) +"%")
+        # print("CORRELATION: " + repr(correlation))
+        print("BLACK PROPORTION: " + repr(black_proportion) +"%")
+        print("ASPECT RATIO: " + repr(aspect_ratio))
+        print("ENTROPY: " + repr(entropy))
         print("LABEL: " + repr(label))
+        print("ID: " + repr(id))
 
         # Declare a list for storing computed features.
-        # features = list()
         features1 = list()
         features2 = list()
         features3 = list()
         features4 = list()
         features5 = list()
         features6 = list()
-        features7 = list()
-        features8 = list()
 
-        # CONTRAST
-        # img_color_contrast = self.get_img_contrast(image_file,1.5)
-        # cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/contrast_img.jpg", img_color_contrast)
-
-
-        img_color = cv2.imread(filename=image_file)
-
-        height, width, dim = img_color.shape
-        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/before_img.jpg", img_color)
-        img_color = self.gaussian_filter(img_color, -100, -100)
-        img_color = self.remove_starlight(img_color, self.get_gray_image(img_color))
-        img_color = cv2.fastNlMeansDenoisingColored(img_color, None, 2, 2, 7, 21)
-
-        clean_img = self.crop_image_with_extremes(img_color, 0)
-
-        white_img = self.white_image(clean_img)
-        white_img = self.remove_little_shapes(white_img)
-
-
-        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/after_img.jpg", clean_img)
-        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/white_img.jpg", white_img)
-
-        # white_img = cv2.imread(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/white_img.jpg")
-
-        # A feature given to student as example. Not used in the following code.
-        color_histogram = self.get_color_histogram(img_color=clean_img)
-
-        fig1 = plt.figure()
-        plt.plot(color_histogram[0])
-        fig1.savefig(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/blue.png")
-
-
-        fig1 = plt.figure()
-        plt.plot(color_histogram[2])
-        fig1.savefig(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/red.png")
-
-        non_zero_blue_indexes = self.get_nonZeroHistogramIndexes(color_histogram, "blue")
-        non_zero_blue = self.get_nonZeroHistogramValues(color_histogram, "blue")
-        px_blue_count = self.get_histogramPixelCount(color_histogram, "blue")
-
-        max_blue_x = non_zero_blue_indexes.max()
-        max_blue = color_histogram[0].max()
-
-        non_zero_red_indexes = self.get_nonZeroHistogramIndexes(color_histogram, "red")
-        non_zero_red = self.get_nonZeroHistogramValues(color_histogram, "red")
-        px_red_count = self.get_histogramPixelCount(color_histogram, "red")
-
-        max_red_x = non_zero_red_indexes.max()
-        max_red = color_histogram[2].max()
-
-
-        mean_blue = self.get_mean(color_histogram, "blue")
-
-        mean_red = self.get_mean(color_histogram, "red")
-
-        std_red = non_zero_red.std()
-        std_blue = non_zero_blue.std()
-
-        std_RB_ratio = std_red / std_blue
-
-        RB_ratio = mean_red / mean_blue
-
-
-
-        AR = self.get_aspect_ratio(white_img)
-
-        entropy = self.get_entropy(self.get_gray_image(clean_img))
-        light_radius = self.get_light_radius(self.get_gray_image(clean_img))
-        light_radius_diff = light_radius[1] - light_radius[0]
-        # fitted_ellipse_center, fitted_ellipse_singular_values, fitted_ellipse_angle = self.fit_ellipse(self.get_gray_float_image(clean_img))
-        gini_coeff = self.gini(self.get_gray_image(clean_img))
-
-        # mean, eigvec = cv2.PCACompute(matrix_test, mean=None)
-
-        center_y, center_x = int(height/2) - 1, int(width/2) - 1
-        # test = np.array([clean_img[center_y][center_x][0], clean_img[center_y][center_x][1], clean_img[center_y][center_x][2]])
         features1 = np.append(features1, RB_ratio)
-        features2 = np.append(features2, light_radius_diff)
-        features3 = np.append(features3, entropy)
-        features4 = np.append(features4, gini_coeff)
-        features5 = np.append(features5, AR)
-        features6 = np.append(features6, std_RB_ratio)
-        features7 = np.append(features7, max_blue_x)
-        features8 = np.append(features8, max_red_x)
+        features2 = np.append(features2, std_RB_ratio)
+        features3 = np.append(features3, circularity)
+        features4 = np.append(features4, black_proportion)
+        features5 = np.append(features5, aspect_ratio)
+        features6 = np.append(features6, entropy)
 
-        features = [features1, features2, features3, features4, features5, features6, features7, features8]
+        features = [features1, features2, features3, features4, features5, features6]
 
         return features, label
