@@ -131,12 +131,12 @@ def main():
     # # Process galaxies.
     galaxy_processor = GalaxyProcessor(galaxy_images_path)
     # features = galaxy_processor.process_galaxy(label_dataset)
-    features1, features2, labels = galaxy_processor.process_galaxy(label_dataset)
+    feature_array, labels = galaxy_processor.process_galaxy(label_dataset)
 
     # # Save extracted features to file.
     # np.savetxt(galaxy_feature_vector_export_path, features, delimiter=",")
     # print("File saved in directory " + galaxy_feature_vector_export_path)
-
+    galaxy_feature_vector_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/exported_personal_feature"
     galaxy_feature1_vector_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/exported_personal_feature1.csv"
     galaxy_feature2_vector_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/exported_personal_feature2.csv"
     galaxy_label_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/exported_personal_label_galaxy.csv"
@@ -149,10 +149,13 @@ def main():
 
     stop = timeit.default_timer()
     print(stop - start)
-    np.savetxt(galaxy_feature1_vector_path, features1, delimiter=",")
-    print("File saved in directory " + galaxy_feature1_vector_path)
-    np.savetxt(galaxy_feature2_vector_path, features2, delimiter=",")
-    print("File saved in directory " + galaxy_feature2_vector_path)
+
+    for i in range(0, 6):
+        temp_filepath = galaxy_feature_vector_path + str(i) +".csv"
+        np.savetxt(temp_filepath, feature_array[i], delimiter=",")
+        print("File saved in directory " + temp_filepath)
+    # np.savetxt(galaxy_feature2_vector_path, feature_array[1], delimiter=",")
+    # print("File saved in directory " + galaxy_feature2_vector_path)
     np.savetxt(galaxy_label_path, labels, delimiter=",")
     print("File saved in directory " + galaxy_label_path)
 

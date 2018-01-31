@@ -21,6 +21,7 @@ import math
 import numpy as np
 import scipy.ndimage as nd
 import matplotlib.pyplot as plt
+from PIL import ImageEnhance, Image
 from scipy.stats.mstats import mquantiles, kurtosis, skew
 
 
@@ -47,6 +48,10 @@ class GalaxyProcessor(object):
         features = list()
         features1 = list()
         features2 = list()
+        features3 = list()
+        features4 = list()
+        features5 = list()
+        features6 = list()
         labels = list()
 
         for sample, label in zip(dataset.train._img_names, dataset.train._labels):
@@ -58,9 +63,13 @@ class GalaxyProcessor(object):
             # feature_vector = self.get_features(file, sample[0], label[0])
             # features.append(feature_vector)
 
-            feature1, feature2, label = self.get_features(file, sample[0], label[0])
-            features1.append(feature1)
-            features2.append(feature2)
+            features_array, label = self.get_features(file, sample[0], label[0])
+            features1.append(features_array[0])
+            features2.append(features_array[1])
+            features3.append(features_array[2])
+            features4.append(features_array[3])
+            features5.append(features_array[4])
+            features6.append(features_array[5])
             labels.append(label)
 
         for sample, label in zip(dataset.valid._img_names, dataset.valid._labels):
@@ -72,12 +81,16 @@ class GalaxyProcessor(object):
             # feature_vector = self.get_features(file, sample[0], label[0])
             # features.append(feature_vector)
 
-            feature_blue_vector, feature_entropy_vector, label = self.get_features(file, sample[0], label[0])
-            features1.append(feature1)
-            features2.append(feature2)
+            feature_array, label = self.get_features(file, sample[0], label[0])
+            features1.append(features_array[0])
+            features2.append(features_array[1])
+            features3.append(features_array[2])
+            features4.append(features_array[3])
+            features5.append(features_array[4])
+            features6.append(features_array[5])
             labels.append(label)
-
-        return features1, features2, labels
+        feature_array_final = [features1, features2, features3, features4, features5, features6]
+        return feature_array_final, labels
 
     def load_image(self, filepath):
         """ Load an image using OpenCV library.
@@ -590,16 +603,30 @@ class GalaxyProcessor(object):
         features = list()
         features1 = list()
         features2 = list()
+        features3 = list()
+        features4 = list()
+        features5 = list()
+        features6 = list()
 
-        img_color = cv2.imread(filename=image_file)
+        pil_image = Image.open(image_file).convert('RGB')
+        converter = ImageEnhance.Color(pil_image)
+        pil_image = converter.enhance(1.5)
+        open_cv_image = np.array(pil_image)
+        # Convert RGB to BGR
+        img_color = open_cv_image[:, :, ::-1].copy()
+
+        img_color_before = cv2.imread(filename=image_file)
+
         height, width, dim = img_color.shape
 
+        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/before_img.jpg", img_color_before)
         clean_img = self.crop_image_with_extremes(img_color)
         # clean_img = self.remove_starlight(clean_img, self.get_gray_image(clean_img))
         not_cropped_img = self.remove_starlight(img_color, self.get_gray_image(img_color))
-        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/before_img.jpg", clean_img)
 
-        clean_img = cv2.fastNlMeansDenoisingColored(clean_img, None, 10, 10, 7, 21)
+
+        # clean_img = cv2.fastNlMeansDenoisingColored(clean_img, None, 5, 5, 7, 21)
+
         cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/after_img.jpg", clean_img)
 
         # A feature given to student as example. Not used in the following code.
@@ -615,16 +642,28 @@ class GalaxyProcessor(object):
 
         non_zero_blue_indexes = np.nonzero(color_histogram[0])[0]
         non_zero_blue = color_histogram[0][non_zero_blue_indexes]
-        nb_blue_px = len(non_zero_blue[non_zero_blue > 15])
+        nb_blue_px = len(non_zero_blue)
+        max_blue_x = non_zero_blue_indexes.max()
         max_blue = color_histogram[0].max()
+        max_blue_index = color_histogram[0].argmax(axis=0)[0]
+
+        # non_zero_green_indexes = np.nonzero(color_histogram[1])[0]
+        # non_zero_green = color_histogram[1][non_zero_green_indexes]
+        # nb_green_px = len(non_zero_green)
+        # max_green_x = non_zero_green[len(non_zero_green) - 1]
+        # max_green = color_histogram[1].max()
+        # max_green_index = color_histogram[1].argmax(axis=0)[0]
 
         non_zero_red_indexes = np.nonzero(color_histogram[2])[0]
         non_zero_red = color_histogram[0][non_zero_red_indexes]
-        nb_red_px = len(non_zero_red[non_zero_red > 15])
+        nb_red_px = len(non_zero_red)
+        max_red_x = non_zero_red_indexes.max()
         max_red = color_histogram[2].max()
+        max_red_index = color_histogram[2].argmax(axis=0)[0]
 
-        mean_blue = np.mean(non_zero_blue[0])
-        mean_red = np.mean(non_zero_red[0])
+        mean_blue = np.mean(non_zero_blue)
+        # mean_green = np.mean(non_zero_green[1:])
+        mean_red = np.mean(non_zero_red)
 
         RB_ratio = mean_blue / mean_red
 
@@ -641,10 +680,14 @@ class GalaxyProcessor(object):
         features1 = np.append(features1, RB_ratio)
         # features1 = np.append(features1, np.array([clean_img[center_y][center_x][0], clean_img[center_y][center_x][1], clean_img[center_y][center_x][2]]))
         features2 = np.append(features2, light_radius_diff)
-
+        features3 = np.append(features3, entropy)
+        features4 = np.append(features4, gini_coeff)
+        features5 = np.append(features5, max_blue_x)
+        features6 = np.append(features6, max_red_x)
+        features_array = [features1, features2, features3, features4, features5, features6]
         # features = np.append(features, features1)
         # features = np.append(features, features2)
         # sat_img = self.saturate(img_color, 0.95, 1)
         # cv2.imwrite(os.environ["VIRTUAL_ENV"] +"/data/csv/galaxy/sat_img.jpg", sat_img)
         # return features
-        return features1, features2, label
+        return features_array, label
