@@ -150,7 +150,7 @@ def main():
     stop = timeit.default_timer()
     print(stop - start)
 
-    for i in range(1, 7):
+    for i in range(1, 9):
         temp_filepath = galaxy_feature_vector_path + str(i) +".csv"
         np.savetxt(temp_filepath, feature_array[i], delimiter=",")
         print("File saved in directory " + temp_filepath)

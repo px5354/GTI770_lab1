@@ -51,6 +51,8 @@ class GalaxyProcessor(object):
         features4 = list()
         features5 = list()
         features6 = list()
+        features7 = list()
+        features8 = list()
         labels = list()
 
         for sample, label in zip(dataset.train._img_names, dataset.train._labels):
@@ -69,6 +71,8 @@ class GalaxyProcessor(object):
             features4.append(features_array[3])
             features5.append(features_array[4])
             features6.append(features_array[5])
+            features7.append(features_array[6])
+            features8.append(features_array[7])
             labels.append(label)
 
         for sample, label in zip(dataset.valid._img_names, dataset.valid._labels):
@@ -87,6 +91,8 @@ class GalaxyProcessor(object):
             features4.append(features_array[3])
             features5.append(features_array[4])
             features6.append(features_array[5])
+            features7.append(features_array[6])
+            features8.append(features_array[7])
             labels.append(label)
         feature_array_final = [features1, features2, features3, features4, features5, features6]
         return feature_array_final, labels
@@ -786,15 +792,15 @@ class GalaxyProcessor(object):
         center_y, center_x = int(height/2) - 1, int(width/2) - 1
         # test = np.array([clean_img[center_y][center_x][0], clean_img[center_y][center_x][1], clean_img[center_y][center_x][2]])
         features1 = np.append(features1, RB_ratio)
-        # features1 = np.append(features1, np.array([clean_img[center_y][center_x][0], clean_img[center_y][center_x][1], clean_img[center_y][center_x][2]]))
         features2 = np.append(features2, light_radius_diff)
         features3 = np.append(features3, entropy)
         features4 = np.append(features4, gini_coeff)
-        features5 = np.append(features5, mean_blue)
-        features6 = np.append(features6, std_blue)
-        # features5 = np.append(features5, AR)
-        # features6 = np.append(features6, max_red_x)
-        features_array = [features1, features2, features3, features4, features5, features6]
+        features5 = np.append(features5, AR)
+        features6 = np.append(features6, std_RB_ratio)
+        features7 = np.append(features5, max_blue_x)
+        features8 = np.append(features5, max_red_x)
+
+        features_array = [features1, features2, features3, features4, features5, features6, features7, features8]
 
         # features = np.append(features, features1)
         # features = np.append(features, features2)
