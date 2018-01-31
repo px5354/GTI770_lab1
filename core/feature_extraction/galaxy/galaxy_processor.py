@@ -24,7 +24,6 @@ import matplotlib.pyplot as plt
 from PIL import ImageEnhance, Image
 from scipy.stats.mstats import mquantiles, kurtosis, skew
 
-
 class GalaxyProcessor(object):
     """ Process galaxy images and extract the features."""
 
@@ -545,19 +544,21 @@ class GalaxyProcessor(object):
         lenght_DimX = len(points)
         lenght_DimY = len(points[0])
 
-        x1 = extLeft[0] - 10
+        extraSpace = 0
+
+        x1 = extLeft[0] - extraSpace
         if x1 < 0:
             x1 = extLeft[0]
 
-        x2 = extRight[0] + 10
+        x2 = extRight[0] + extraSpace
         if x2 > lenght_DimX:
             x1 = extRight[0]
 
-        y1 = extTop[1] - 10
+        y1 = extTop[1] - extraSpace
         if y1 < 0:
             y1 = extTop[1]
 
-        y2 = extBot[1] + 10
+        y2 = extBot[1] + extraSpace
         if y2 > lenght_DimY:
             y2 = extBot[1]
 
@@ -624,6 +625,50 @@ class GalaxyProcessor(object):
 
         return mean
 
+    def remove_little_area(self, image):
+        # find all your connected components (white blobs in your image)
+        nb_components, output, stats, centroids = cv2.connectedComponentsWithStats(image, connectivity=8)
+
+        # connectedComponentswithStats yields every seperated component with information on each of them, such as size
+        # the following part is just taking out the background which is also considered a component, but most of the time we don't want that.
+        sizes = stats[1:, -1];
+        nb_components = nb_components - 1
+
+        # minimum size of particles we want to keep (number of pixels)
+        # here, it's a fixed value, but you can set it as you want, eg the mean of the sizes or whatever
+        min_size = 350
+
+        # your answer image
+        img2 = np.zeros((output.shape))
+        # for every component in the image, you keep it only if it's above min_size
+
+        bigsize = max(sizes)
+
+        for i in range(0, nb_components):
+            if sizes[i] >= bigsize - 20:
+                img2[output == i + 1] = 255
+
+        return img2
+
+    def circularity(self, image):
+
+        white_image = self.white_image(image)
+        im2, contours, hierarchy = cv2.findContours(white_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+        cnt = contours[0]
+
+        area = cv2.contourArea(cnt)
+        perimeter = cv2.arcLength(cnt, True)
+
+        c = (4 * math.pi * area) / (perimeter * perimeter)
+
+        return c
+
+    def get_aspect_ratio(self, image):
+
+        height, width = image.shape
+
+        return width / height
 
 
     def get_features(self, image_file, id, label):
@@ -651,27 +696,32 @@ class GalaxyProcessor(object):
         features5 = list()
         features6 = list()
 
-        pil_image = Image.open(image_file).convert('RGB')
-        converter = ImageEnhance.Color(pil_image)
-        pil_image = converter.enhance(1.5)
-        open_cv_image = np.array(pil_image)
+        # pil_image = Image.open(image_file).convert('RGB')
+        # converter = ImageEnhance.Color(pil_image)
+        # pil_image = converter.enhance(1.5)
+        # open_cv_image = np.array(pil_image)
         # Convert RGB to BGR
-        img_color = open_cv_image[:, :, ::-1].copy()
+        # img_color = open_cv_image[:, :, ::-1].copy()
 
-        img_color_before = cv2.imread(filename=image_file)
-
+        img_color = cv2.imread(filename=image_file)
+        # test_ccv = ccv(img_color)
         height, width, dim = img_color.shape
+
+        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/before_img.jpg", img_color)
         img_color = self.remove_starlight(img_color, self.get_gray_image(img_color))
+        img_color = cv2.fastNlMeansDenoisingColored(img_color, None, 2, 2, 7, 21)
         img_color = self.gaussian_filter(img_color, -100, -100)
-        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/before_img.jpg", img_color_before)
+
         clean_img = self.crop_image_with_extremes(img_color)
 
-        not_cropped_img = self.remove_starlight(img_color, self.get_gray_image(img_color))
+        white_img = self.white_image(clean_img)
+        white_img = self.remove_little_area(white_img)
 
-
-        # clean_img = cv2.fastNlMeansDenoisingColored(clean_img, None, 5, 5, 7, 21)
 
         cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/after_img.jpg", clean_img)
+        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/white_img.jpg", white_img)
+
+        # white_img = cv2.imread(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/white_img.jpg")
 
         # A feature given to student as example. Not used in the following code.
         color_histogram = self.get_color_histogram(img_color=clean_img)
@@ -699,9 +749,10 @@ class GalaxyProcessor(object):
         max_red_x = non_zero_red_indexes.max()
         max_red = color_histogram[2].max()
 
+
         mean_blue = self.get_mean(color_histogram, "blue")
 
-        mean_red = np.mean(non_zero_red)
+        mean_red = self.get_mean(color_histogram, "red")
 
         std_red = non_zero_red.std()
         std_blue = non_zero_blue.std()
@@ -709,6 +760,8 @@ class GalaxyProcessor(object):
         RB_ratio = mean_red / mean_blue
 
 
+
+        AR = self.get_aspect_ratio(white_img)
 
         entropy = self.get_entropy(self.get_gray_image(clean_img))
         light_radius = self.get_light_radius(self.get_gray_image(not_cropped_img))
@@ -727,7 +780,10 @@ class GalaxyProcessor(object):
         features4 = np.append(features4, gini_coeff)
         features5 = np.append(features5, mean_blue)
         features6 = np.append(features6, std_blue)
+        # features5 = np.append(features5, AR)
+        # features6 = np.append(features6, max_red_x)
         features_array = [features1, features2, features3, features4, features5, features6]
+
         # features = np.append(features, features1)
         # features = np.append(features, features2)
         # sat_img = self.saturate(img_color, 0.95, 1)
