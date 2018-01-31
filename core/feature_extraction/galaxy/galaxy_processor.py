@@ -6,24 +6,25 @@ Course :
     GTI770 — Systèmes intelligents et apprentissage machine
 
 Project :
-    Lab # X - Lab's name
+    Lab # 1 - Extraction de primitives
 
 Students :
-    Names — Permanent Code
+    ARRON VUONG     -   VUOA09109300
+    PHILIPPE LE     -   LEXP12119302
+    SAMUEL GERVAIS  -   GERS04029200
 
 Group :
-    GTI770-H18-0X
+    GTI770-H18-02
 """
 
-import csv
-
 import cv2
+import os
 import math
 import numpy as np
 import scipy.ndimage as nd
+import matplotlib.pyplot as plt
+from PIL import ImageEnhance, Image
 from scipy.stats.mstats import mquantiles, kurtosis, skew
-from sklearn.preprocessing import LabelEncoder
-
 
 class GalaxyProcessor(object):
     """ Process galaxy images and extract the features."""
@@ -46,6 +47,15 @@ class GalaxyProcessor(object):
              An array containing the image's features.
         """
         features = list()
+        features1 = list()
+        features2 = list()
+        features3 = list()
+        features4 = list()
+        features5 = list()
+        features6 = list()
+        features7 = list()
+        features8 = list()
+        labels = list()
 
         for sample, label in zip(dataset.train._img_names, dataset.train._labels):
 
@@ -53,8 +63,26 @@ class GalaxyProcessor(object):
             file = self.get_image_path() + str(sample[0]) + ".jpg"
 
             # Compute the features and append to the list.
-            feature_vector = self.get_features(file, sample[0], label[0])
-            features.append(feature_vector)
+            # feature_vector = self.get_features(file, sample[0], label[0])
+            # features.append(feature_vector)
+
+            features_array, label = self.get_features(file, sample[0], label[0])
+            num_of_features = len(features_array)
+            if len(features) != num_of_features:
+                features = [[] for _ in range(num_of_features)]
+
+            for i in range(0, num_of_features):
+                features[i].append(features_array[i])
+
+            # features1.append(features_array[0])
+            # features2.append(features_array[1])
+            # features3.append(features_array[2])
+            # features4.append(features_array[3])
+            # features5.append(features_array[4])
+            # features6.append(features_array[5])
+            # features7.append(features_array[6])
+            # features8.append(features_array[7])
+            labels.append(label)
 
         for sample, label in zip(dataset.valid._img_names, dataset.valid._labels):
 
@@ -62,12 +90,25 @@ class GalaxyProcessor(object):
             file = self.get_image_path() + str(sample[0]) + ".jpg"
 
             # Compute the features and append to the list.
-            feature_vector = self.get_features(file, sample[0], label[0])
-            features.append(feature_vector)
+            # feature_vector = self.get_features(file, sample[0], label[0])
+            # features.append(feature_vector)
 
+            feature_array, label = self.get_features(file, sample[0], label[0])
 
+            features[i].append(features_array[i])
 
-        return features
+            # features1.append(features_array[0])
+            # features2.append(features_array[1])
+            # features3.append(features_array[2])
+            # features4.append(features_array[3])
+            # features5.append(features_array[4])
+            # features6.append(features_array[5])
+            # features7.append(features_array[6])
+            # features8.append(features_array[7])
+            labels.append(label)
+
+        # feature_array_final = [features1, features2, features3, features4, features5, features6]
+        return features, labels
 
     def load_image(self, filepath):
         """ Load an image using OpenCV library.
@@ -457,6 +498,305 @@ class GalaxyProcessor(object):
 
         return np.array([blue_histogram, green_histogram, red_histogram])
 
+    def white_image(self, image):
+        """ Change the colors of an image.
+
+        Using openCV method to change colors from an image.
+
+        Args:
+            image: an OpenCV standard image format.
+
+        Returns:
+            The image in black and white a.k.a gray scale.
+        """
+
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)
+
+        thresh = cv2.threshold(gray, 45, 255, cv2.THRESH_BINARY)[1]
+        thresh = cv2.erode(thresh, None, iterations=2)
+        thresh = cv2.dilate(thresh, None, iterations=2)
+
+        return thresh
+
+    def crop_image_with_extremes(self, image, extraspace):
+        """ Crop the image with extremes values.
+
+        Using openCV filters and thresh to help find contours.
+        Using openCV contours to detect the shape.
+        Using openCV method to crop the image from the extremes values from left, right, top and bottom.
+
+        Args:
+            image: an OpenCV standard image format.
+            extraSpace: a value to add to the extremes.
+
+        Returns:
+            The image cropped from extremes values.
+        """
+
+        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = cv2.GaussianBlur(gray, (5, 5), 0)
+        thresh = cv2.threshold(gray, 45, 255, cv2.THRESH_BINARY)[1]
+
+        cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnts = cnts[1]
+        c = max(cnts, key=cv2.contourArea)
+
+        # determine the most extreme points along the contour
+        extLeft = tuple(c[c[:, :, 0].argmin()][0])
+        extRight = tuple(c[c[:, :, 0].argmax()][0])
+        extTop = tuple(c[c[:, :, 1].argmin()][0])
+        extBot = tuple(c[c[:, :, 1].argmax()][0])
+
+        lenght_DimX = len(image)
+        lenght_DimY = len(image[0])
+
+        #extraSpace is used here because sometimes we want more than the fit size of the shape.
+        #So, we verify to make sure it's not going outside of the screen.
+        x1 = extLeft[0] - extraspace
+        if x1 < 0:
+            x1 = extLeft[0]
+
+        x2 = extRight[0] + extraspace
+        if x2 > lenght_DimX:
+            x1 = extRight[0]
+
+        y1 = extTop[1] - extraspace
+        if y1 < 0:
+            y1 = extTop[1]
+
+        y2 = extBot[1] + extraspace
+        if y2 > lenght_DimY:
+            y2 = extBot[1]
+
+        image = image[y1:y2, x1:x2]
+
+        return image
+
+    def correlation(self, image):
+        """ Give the correlation of the image.
+
+        Using numpy corrcoef methods to give the correlation between two array of data.
+
+        Args:
+            image: a black and white image.
+
+        Returns:
+            The correlation of white in the image.
+        """
+
+        points = image.astype('float')
+
+        rows, cols = image.shape
+
+        listX = []
+        listY = []
+
+        for x in range(rows):
+            for y in range(cols):
+                if points[x][y] == 255:
+                    listX.append(x)
+                    listY.append(y)
+
+        correlation = np.corrcoef(listX, listY)[0, 1]
+
+        return correlation
+
+    def remove_little_shapes(self, image):
+        """ Removing little shapes in the image.
+
+        Using OpenCV connectedComponentsWithStats to get all the shapes
+
+        Args:
+            image: a black and white image.
+
+        Returns:
+            The image with one shape and nothing around it.
+        """
+
+        components, output, stats, centroids = cv2.connectedComponentsWithStats(image, connectivity=8)
+        sizes = stats[1:, -1];
+
+        img2 = np.zeros((output.shape))
+
+        for i in range(0, components - 1):
+            if sizes[i] == max(sizes):
+                img2[output == i + 1] = 255
+
+        return img2
+
+    def black_proportion(self, image):
+        """ GIve proportion of black in the image.
+
+        Using some image proporties to calculate the proportion
+
+        Args:
+            image: a black and white image.
+
+        Returns:
+            The proportion value of black in %.
+        """
+
+        points = image.astype('float')
+        rows, cols = image.shape
+        black = 0
+        count = 0
+
+        for x in range(rows):
+            for y in range(cols):
+                count += 1
+                if points[x][y] == 0:
+                    black += 1
+
+        proportion = black / count * 100
+
+        return proportion
+
+    def circularity(self, image):
+        """ Give the circularity of the shape in the image.
+
+        Using OpenCV findContours to get the shape of the image.
+        Using OpenCV contourArea to get the area.
+        Using OpenCV arcLength to get the perimeters of the shape.
+
+        Args:
+            image: an OpenCV standard image format.
+
+        Returns:
+            The circularity value of the shape in the image in %.
+        """
+
+        white_image = self.white_image(image)
+        im2, contours, hierarchy = cv2.findContours(white_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        cnt = contours[0]
+        area = cv2.contourArea(cnt)
+        perimeter = cv2.arcLength(cnt, True)
+
+        circularity = (4 * math.pi * area) / (perimeter * perimeter) * 100
+
+        return circularity
+
+    def get_nonZeroHistogramIndexes(self, color_histogram, color):
+
+        if(color == "blue"):
+            colorIndex = 0
+        if (color == "green"):
+            colorIndex = 1
+        if (color == "red"):
+            colorIndex = 2
+
+        histogramIndexes = np.nonzero(color_histogram[colorIndex])[0]
+
+        return histogramIndexes
+
+    def get_nonZeroHistogramValues(self, color_histogram, color):
+
+        if (color == "blue"):
+            colorIndex = 0
+        if (color == "green"):
+            colorIndex = 1
+        if (color == "red"):
+            colorIndex = 2
+
+        histogramIndexes = self.get_nonZeroHistogramIndexes(color_histogram, color)
+
+        histogramValues = color_histogram[colorIndex][histogramIndexes]
+
+        return histogramValues
+
+    def get_histogramPixelCount(self, color_histogram, color):
+
+        pixelCount = len(self.get_nonZeroHistogramValues(color_histogram, color))
+
+        return pixelCount
+
+    def get_mean(self, color_histogram, color):
+
+        mean = np.mean(self.get_nonZeroHistogramValues(color_histogram, color))
+
+        return mean
+
+    def get_img_contrast(self, image_file,enhanceNumber):
+
+        pil_image = Image.open(image_file).convert('RGB')
+        converter = ImageEnhance.Color(pil_image)
+        pil_image = converter.enhance(enhanceNumber)
+        open_cv_image = np.array(pil_image)
+        # Convert RGB to BGR
+        img_color_contrast = open_cv_image[:, :, ::-1].copy()
+
+        return img_color_contrast
+
+    def get_aspect_ratio(self, image):
+        height, width = image.shape
+        return width / height
+
+    def feature_circularity(self, image):
+        """ Feature to give the circularity
+
+        Using home made methods to prepare the image.
+
+        Args:
+            image: an OpenCV standard image format.
+
+        Returns:
+            The circularity value in %.
+        """
+
+        temp_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/temp_image.jpg"
+        original_image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
+        cropped_img = self.crop_image_with_extremes(original_image, 0)
+        white_image = self.white_image(cropped_img)
+        clean_image = self.remove_little_shapes(white_image)
+        cv2.imwrite(temp_path, clean_image)
+        final_image = cv2.imread(temp_path)
+        circularity = self.circularity(final_image)
+        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/circularity_image.jpg", final_image)
+
+        return circularity
+
+    def feature_correlation(self, image):
+        """ Feature to give the correlation
+
+        Using home made methods to prepare the image.
+
+        Args:
+            image: an OpenCV standard image format.
+
+        Returns:
+            The correlation value.
+        """
+
+        original_image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
+        cropped_img = self.crop_image_with_extremes(original_image, 0)
+        white_image = self.white_image(cropped_img)
+        clean_image = self.remove_little_shapes(white_image)
+        correlation = self.correlation(clean_image)
+
+        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/correlation_image.jpg", clean_image)
+
+        return correlation
+
+    def feature_black_proportion(self, image):
+        """ Feature to give the black proportion
+
+        Using home made methods to prepare the image
+
+        Args:
+            image: an OpenCV standard image format.
+
+        Returns:
+            The black proportion value in %.
+        """
+
+        original_image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
+        cropped_img = self.crop_image_with_extremes(original_image, 0)
+        white_image = self.white_image(cropped_img)
+        clean_image = self.remove_little_shapes(white_image)
+        proportion = self.black_proportion(clean_image)
+
+        return proportion
+
     def get_features(self, image_file, id, label):
         """ Get the image's features.
 
@@ -473,14 +813,113 @@ class GalaxyProcessor(object):
 
         print("Processing file : " + image_file)
 
+        original_image = cv2.imread(filename=image_file)
+
+        circularity = self.feature_circularity(original_image)
+        correlation = self.feature_correlation(original_image)
+        proportion = self.feature_black_proportion(original_image)
+
+        print("CIRCULARIY: " + repr(circularity))
+        print("CORRELATION: " + repr(correlation))
+        print("PROPORTION: " + repr(proportion) +"%")
+        print("LABEL: " + repr(label))
+
         # Declare a list for storing computed features.
-        features = list()
+        # features = list()
+        features1 = list()
+        features2 = list()
+        features3 = list()
+        features4 = list()
+        features5 = list()
+        features6 = list()
+        features7 = list()
+        features8 = list()
+
+        # CONTRAST
+        # img_color_contrast = self.get_img_contrast(image_file,1.5)
+        # cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/contrast_img.jpg", img_color_contrast)
+
 
         img_color = cv2.imread(filename=image_file)
 
-        # A feature given to student as example. Not used in the following code.
-        color_histogram = self.get_color_histogram(img_color=img_color)
+        height, width, dim = img_color.shape
+        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/before_img.jpg", img_color)
+        img_color = self.gaussian_filter(img_color, -100, -100)
+        img_color = self.remove_starlight(img_color, self.get_gray_image(img_color))
+        img_color = cv2.fastNlMeansDenoisingColored(img_color, None, 2, 2, 7, 21)
 
-        features = np.append(features, color_histogram)
-        
-        return features
+        clean_img = self.crop_image_with_extremes(img_color, 0)
+
+        white_img = self.white_image(clean_img)
+        white_img = self.remove_little_shapes(white_img)
+
+
+        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/after_img.jpg", clean_img)
+        cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/white_img.jpg", white_img)
+
+        # white_img = cv2.imread(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/white_img.jpg")
+
+        # A feature given to student as example. Not used in the following code.
+        color_histogram = self.get_color_histogram(img_color=clean_img)
+
+        fig1 = plt.figure()
+        plt.plot(color_histogram[0])
+        fig1.savefig(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/blue.png")
+
+
+        fig1 = plt.figure()
+        plt.plot(color_histogram[2])
+        fig1.savefig(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/red.png")
+
+        non_zero_blue_indexes = self.get_nonZeroHistogramIndexes(color_histogram, "blue")
+        non_zero_blue = self.get_nonZeroHistogramValues(color_histogram, "blue")
+        px_blue_count = self.get_histogramPixelCount(color_histogram, "blue")
+
+        max_blue_x = non_zero_blue_indexes.max()
+        max_blue = color_histogram[0].max()
+
+        non_zero_red_indexes = self.get_nonZeroHistogramIndexes(color_histogram, "red")
+        non_zero_red = self.get_nonZeroHistogramValues(color_histogram, "red")
+        px_red_count = self.get_histogramPixelCount(color_histogram, "red")
+
+        max_red_x = non_zero_red_indexes.max()
+        max_red = color_histogram[2].max()
+
+
+        mean_blue = self.get_mean(color_histogram, "blue")
+
+        mean_red = self.get_mean(color_histogram, "red")
+
+        std_red = non_zero_red.std()
+        std_blue = non_zero_blue.std()
+
+        std_RB_ratio = std_red / std_blue
+
+        RB_ratio = mean_red / mean_blue
+
+
+
+        AR = self.get_aspect_ratio(white_img)
+
+        entropy = self.get_entropy(self.get_gray_image(clean_img))
+        light_radius = self.get_light_radius(self.get_gray_image(clean_img))
+        light_radius_diff = light_radius[1] - light_radius[0]
+        # fitted_ellipse_center, fitted_ellipse_singular_values, fitted_ellipse_angle = self.fit_ellipse(self.get_gray_float_image(clean_img))
+        gini_coeff = self.gini(self.get_gray_image(clean_img))
+
+        # mean, eigvec = cv2.PCACompute(matrix_test, mean=None)
+
+        center_y, center_x = int(height/2) - 1, int(width/2) - 1
+        # test = np.array([clean_img[center_y][center_x][0], clean_img[center_y][center_x][1], clean_img[center_y][center_x][2]])
+        features1 = np.append(features1, RB_ratio)
+        features2 = np.append(features2, light_radius_diff)
+        features3 = np.append(features3, entropy)
+        features4 = np.append(features4, gini_coeff)
+        features5 = np.append(features5, AR)
+        features6 = np.append(features6, std_RB_ratio)
+        features7 = np.append(features7, max_blue_x)
+        features8 = np.append(features8, max_red_x)
+
+        features = [features1, features2, features3, features4, features5, features6, features7, features8]
+
+        return features, label

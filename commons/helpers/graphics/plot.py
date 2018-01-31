@@ -56,7 +56,7 @@ class Plot(object):
         # Plot
         ax.margins(0.05)
         for name, group in groups:
-            ax.plot(group.x, group.y, marker='o', linestyle='', ms=12, label=name)
+            ax.plot(group.x, group.y, marker='o' , linestyle='', ms=12, label=name)
         ax.legend()
         plt.savefig(filename)
 
