@@ -777,7 +777,10 @@ class GalaxyProcessor(object):
 
         mean_blue = self.get_mean(color_histogram, "blue")
         mean_red = self.get_mean(color_histogram, "red")
-        RB_ratio = mean_red / mean_blue
+        if mean_blue == 0:
+            RB_ratio = 0
+        else:
+            RB_ratio = mean_red / mean_blue
 
         return RB_ratio
 
@@ -805,7 +808,11 @@ class GalaxyProcessor(object):
 
         std_red = non_zero_red.std()
         std_blue = non_zero_blue.std()
-        std_RB_ratio = std_red / std_blue
+
+        if std_blue == 0:
+            std_RB_ratio = 0
+        else:
+            std_RB_ratio = std_red / std_blue
 
         return std_RB_ratio
 
