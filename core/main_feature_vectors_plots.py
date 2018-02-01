@@ -1,12 +1,29 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+"""
+Course :
+    GTI770 — Systèmes intelligents et apprentissage machine
+
+Project :
+    Lab # 1 - Extraction de primitives
+
+Students :
+    ARRON VUONG     -   VUOA09109300
+    PHILIPPE LE     -   LEXP12119302
+    SAMUEL GERVAIS  -   GERS04029200
+
+Group :
+    GTI770-H18-02
+
+Notes : This file is a file that will use
+"""
 
 import os
 import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
 from commons.helpers.graphics.plot import Plot
 from sklearn import tree
 from sklearn.model_selection import train_test_split
-from sklearn.datasets import load_iris
 import operator
 
 def main():
