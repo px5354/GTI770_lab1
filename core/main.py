@@ -44,45 +44,6 @@ def main():
 
     start = timeit.default_timer()
 
-    # spiral_img = "/opt/project/project/data/images/585542.jpg"
-    # smooth_img = "/opt/project/project/data/images/100053.jpg"
-    # artifact_img = "/opt/project/project/data/images/126783.jpg"
-
-    # Center RGB color extract
-    # img = cv2.imread(spiral_img)
-    # print("spiral")
-    # height, width, dim = img.shape
-    # center_y, center_x = int(height/2) - 1, int(width/2) - 1
-    # # blue
-    # print(img[center_y][center_x][0])
-    # # green
-    # print(img[center_y][center_x][1])
-    # # red
-    # print(img[center_y][center_x][2])
-    #
-    # img = cv2.imread(smooth_img)
-    # print("smooth")
-    # height, width, dim = img.shape
-    # center_y, center_x = int(height / 2) - 1, int(width / 2) - 1
-    # # blue
-    # print(img[center_y][center_x][0])
-    # # green
-    # print(img[center_y][center_x][1])
-    # # red
-    # print(img[center_y][center_x][2])
-    #
-    # img = cv2.imread(artifact_img)
-    # print("artifact")
-    # height, width, dim = img.shape
-    # center_y, center_x = int(height / 2) - 1, int(width / 2) - 1
-    # # blue
-    # print(img[center_y][center_x][0])
-    # # green
-    # print(img[center_y][center_x][1])
-    # # red
-    # print(img[center_y][center_x][2])
-
-
     # The desired validation size.
     validation_size = 0.2
 

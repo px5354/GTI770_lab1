@@ -17,7 +17,7 @@ Group :
 
 import numpy as np
 
-from mdlp.discretization import MDLP
+# from mdlp.discretization import MDLP
 from commons.helpers.dataset.strategies.galaxy_dataset.feature_strategy import GalaxyDataSetFeatureStrategy
 
 
@@ -27,7 +27,7 @@ class SupervisedDiscretizationStrategy(object):
     """
 
     def __init__(self):
-        self.transformer = MDLP()
+        self.transformer = None#MDLP()
 
     def discretize(self, data_set, validation_size, nb_bins=None):
         """ Discretize continuous attribute using MDLP method.

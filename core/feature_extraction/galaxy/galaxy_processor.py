@@ -510,7 +510,7 @@ class GalaxyProcessor(object):
             The image in black and white a.k.a gray scale.
         """
 
-        gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        gray = cv2.cvtColor(image.astype("uint8"), cv2.COLOR_BGR2GRAY)
         gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
         thresh = cv2.threshold(gray, 45, 255, cv2.THRESH_BINARY)[1]
@@ -539,6 +539,8 @@ class GalaxyProcessor(object):
         thresh = cv2.threshold(gray, 45, 255, cv2.THRESH_BINARY)[1]
 
         cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if len(cnts) == 0:
+            return image
         cnts = cnts[1]
         c = max(cnts, key=cv2.contourArea)
 
@@ -667,7 +669,11 @@ class GalaxyProcessor(object):
         """
 
         white_image = self.white_image(image)
+        if white_image is None:
+            return 0
         im2, contours, hierarchy = cv2.findContours(white_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if len(contours) == 0:
+            return 0
         cnt = contours[0]
         area = cv2.contourArea(cnt)
         perimeter = cv2.arcLength(cnt, True)
@@ -679,12 +685,19 @@ class GalaxyProcessor(object):
     def get_aspect_ratio(self, image):
 
         white_image = self.white_image(image)
+        if white_image is None:
+            return 0
         im2, contours, hierarchy = cv2.findContours(white_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if len(contours) == 0:
+            return 0
         cnt = contours[0]
         rect = cv2.minAreaRect(cnt)
         width = rect[1][0]
         height = rect[1][1]
-        ar = width/height
+        if (width == 0) or (height == 0):
+            return 0
+        else:
+            ar = width/height
 
         return ar
 
@@ -740,7 +753,7 @@ class GalaxyProcessor(object):
 
         return img_color_contrast
 
-    def features_color_RB_ratio(self, image, queue):
+    def features_color_RB_ratio(self, image):
         """ Color features
 
         Using home made methods to prepare the image.
@@ -755,7 +768,6 @@ class GalaxyProcessor(object):
         img_color = image
         img_color = self.gaussian_filter(img_color, -100, -100)
         img_color = self.remove_starlight(img_color, self.get_gray_image(img_color))
-        img_color = cv2.fastNlMeansDenoisingColored(img_color, None, 2, 2, 7, 21)
         clean_img = self.crop_image_with_extremes(img_color, 0)
 
         color_histogram = self.get_color_histogram(img_color=clean_img)
@@ -767,11 +779,9 @@ class GalaxyProcessor(object):
         mean_red = self.get_mean(color_histogram, "red")
         RB_ratio = mean_red / mean_blue
 
-        queue.put(RB_ratio)
-
         return RB_ratio
 
-    def features_color_std_RB_ratio(self, image, queue):
+    def features_color_std_RB_ratio(self, image):
         """ Color features
 
         Using home made methods to prepare the image.
@@ -786,7 +796,6 @@ class GalaxyProcessor(object):
         img_color = image
         img_color = self.gaussian_filter(img_color, -100, -100)
         img_color = self.remove_starlight(img_color, self.get_gray_image(img_color))
-        img_color = cv2.fastNlMeansDenoisingColored(img_color, None, 2, 2, 7, 21)
         clean_img = self.crop_image_with_extremes(img_color, 0)
 
         color_histogram = self.get_color_histogram(img_color=clean_img)
@@ -798,11 +807,9 @@ class GalaxyProcessor(object):
         std_blue = non_zero_blue.std()
         std_RB_ratio = std_red / std_blue
 
-        queue.put(std_RB_ratio)
-
         return std_RB_ratio
 
-    def feature_circularity(self, image, queue):
+    def feature_circularity(self, image):
         """ Feature to give the circularity
 
         Using home made methods to prepare the image.
@@ -815,16 +822,13 @@ class GalaxyProcessor(object):
         """
 
         temp_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/temp_image.jpg"
-        original_image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
-        cropped_img = self.crop_image_with_extremes(original_image, 0)
+        cropped_img = self.crop_image_with_extremes(image, 0)
         white_image = self.white_image(cropped_img)
         clean_image = self.remove_little_shapes(white_image)
         cv2.imwrite(temp_path, clean_image)
         final_image = cv2.imread(temp_path)
         circularity = self.get_circularity(final_image)
         cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/circularity_image.jpg", final_image)
-
-        queue.put(circularity)
 
         return circularity
 
@@ -840,8 +844,7 @@ class GalaxyProcessor(object):
             The correlation value.
         """
 
-        original_image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
-        cropped_img = self.crop_image_with_extremes(original_image, 0)
+        cropped_img = self.crop_image_with_extremes(image, 0)
         white_image = self.white_image(cropped_img)
         clean_image = self.remove_little_shapes(white_image)
         correlation = self.correlation(clean_image)
@@ -850,7 +853,7 @@ class GalaxyProcessor(object):
 
         return correlation
 
-    def feature_aspect_ratio(self, image, queue):
+    def feature_aspect_ratio(self, image):
         """ Feature to give the aspect ratio
 
         Using home made methods to prepare the image.
@@ -863,8 +866,7 @@ class GalaxyProcessor(object):
         """
 
         temp_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/temp_image.jpg"
-        original_image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
-        cropped_img = self.crop_image_with_extremes(original_image, 10)
+        cropped_img = self.crop_image_with_extremes(image, 0)
         white_image = self.white_image(cropped_img)
         clean_image = self.remove_little_shapes(white_image)
         cv2.imwrite(temp_path, clean_image)
@@ -873,11 +875,9 @@ class GalaxyProcessor(object):
 
         cv2.imwrite(os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/aspect_ratio_image.jpg", clean_image)
 
-        queue.put(ar)
-
         return ar
 
-    def feature_black_proportion(self, image, queue):
+    def feature_black_proportion(self, image):
         """ Feature to give the black proportion
 
         Using home made methods to prepare the image
@@ -889,30 +889,25 @@ class GalaxyProcessor(object):
             The black proportion value in %.
         """
 
-        original_image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
-        cropped_img = self.crop_image_with_extremes(original_image, 0)
+        cropped_img = self.crop_image_with_extremes(image, 0)
         white_image = self.white_image(cropped_img)
+        if white_image is None:
+            return 0
         clean_image = self.remove_little_shapes(white_image)
         proportion = self.get_black_proportion(clean_image)
 
-        queue.put(proportion)
-
         return proportion
 
-    def feature_entropy(self, image, queue):
+    def feature_entropy(self, image):
 
-        original_image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
-        cropped_img = self.crop_image_with_extremes(original_image, 0)
+        cropped_img = self.crop_image_with_extremes(image, 0)
         entropy = self.get_entropy(self.get_gray_image(cropped_img))
-
-        queue.put(entropy)
 
         return entropy
 
     def feature_gini(self, image):
 
-        original_image = cv2.fastNlMeansDenoisingColored(image, None, 10, 10, 7, 21)
-        cropped_img = self.crop_image_with_extremes(original_image, 0)
+        cropped_img = self.crop_image_with_extremes(image, 0)
         gini = self.gini(self.get_gray_image(cropped_img))
 
         return gini
@@ -935,71 +930,25 @@ class GalaxyProcessor(object):
 
         original_image = cv2.imread(filename=image_file)
 
-        queue = multiprocessing.Queue()
 
-        a = multiprocessing.Process(
-            target=self.features_color_RB_ratio,
-            args=(original_image,queue)
-        )
-        b = multiprocessing.Process(
-            target=self.features_color_std_RB_ratio,
-            args=(original_image,queue)
-        )
-        c = multiprocessing.Process(
-            target=self.feature_circularity,
-            args=(original_image,queue)
-        )
-        d = multiprocessing.Process(
-            target=self.feature_black_proportion,
-            args=(original_image,queue)
-        )
-        e = multiprocessing.Process(
-            target=self.feature_aspect_ratio,
-            args=(original_image,queue)
-        )
-        f = multiprocessing.Process(
-            target=self.feature_entropy,
-            args=(original_image,queue)
-        )
-        a.start()
-        b.start()
-        c.start()
-        d.start()
-        e.start()
-        f.start()
+        RB_ratio = self.features_color_RB_ratio(original_image)
+        std_RB_ratio = self.features_color_std_RB_ratio(original_image)
+        circularity = self.feature_circularity(original_image)
+        # correlation = self.feature_correlation(original_image)
+        black_proportion = self.feature_black_proportion(original_image)
+        aspect_ratio = self.feature_aspect_ratio(original_image)
+        entropy = self.feature_entropy(original_image)
+        # gini_coeff = self.featur
 
-        a.join()
-        b.join()
-        c.join()
-        d.join()
-        e.join()
-        f.join()
-
-        RB_ratio = queue.get()
-        std_RB_ratio = queue.get()
-        circularity = queue.get()
-        black_proportion = queue.get()
-        aspect_ratio = queue.get()
-        entropy = queue.get()
-
-
-        # RB_ratio, std_RB_ratio = self.features_color(original_image)
-        # circularity = self.feature_circularity(original_image)
-        # # correlation = self.feature_correlation(original_image)
-        # black_proportion = self.feature_black_proportion(original_image)
-        # aspect_ratio = self.feature_aspect_ratio(original_image)
-        # entropy = self.feature_entropy(original_image)
-        # # gini_coeff = self.featur
-
-        print("RB RATIO: " + repr(RB_ratio))
-        print("STD RB RATIO: " + repr(std_RB_ratio))
-        print("CIRCULARIY: " + repr(circularity))
+        # print("RB RATIO: " + repr(RB_ratio))
+        # print("STD RB RATIO: " + repr(std_RB_ratio))
+        # print("CIRCULARIY: " + repr(circularity))
         # print("CORRELATION: " + repr(correlation))
-        print("BLACK PROPORTION: " + repr(black_proportion) +"%")
-        print("ASPECT RATIO: " + repr(aspect_ratio))
-        print("ENTROPY: " + repr(entropy))
-        print("LABEL: " + repr(label))
-        print("ID: " + repr(id))
+        # print("BLACK PROPORTION: " + repr(black_proportion) +"%")
+        # print("ASPECT RATIO: " + repr(aspect_ratio))
+        # print("ENTROPY: " + repr(entropy))
+        # print("LABEL: " + repr(label))
+        # print("ID: " + repr(id))
 
         # Declare a list for storing computed features.
         features1 = list()
@@ -1015,6 +964,8 @@ class GalaxyProcessor(object):
         features4 = np.append(features4, black_proportion)
         features5 = np.append(features5, aspect_ratio)
         features6 = np.append(features6, entropy)
+
+
 
         features = [features1, features2, features3, features4, features5, features6]
 
