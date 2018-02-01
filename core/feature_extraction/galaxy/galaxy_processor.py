@@ -15,6 +15,9 @@ Students :
 
 Group :
     GTI770-H18-02
+
+Note : This file contains everything for extracting the features from galaxies
+
 """
 
 import cv2
@@ -47,14 +50,6 @@ class GalaxyProcessor(object):
              An array containing the image's features.
         """
         features = list()
-        features1 = list()
-        features2 = list()
-        features3 = list()
-        features4 = list()
-        features5 = list()
-        features6 = list()
-        features7 = list()
-        features8 = list()
         labels = list()
 
         for sample, label in zip(dataset.train._img_names, dataset.train._labels):
@@ -63,9 +58,6 @@ class GalaxyProcessor(object):
             file = self.get_image_path() + str(sample[0]) + ".jpg"
 
             # Compute the features and append to the list.
-            # feature_vector = self.get_features(file, sample[0], label[0])
-            # features.append(feature_vector)
-
             features_array, label = self.get_features(file, sample[0], label[0])
             num_of_features = len(features_array)
             if len(features) != num_of_features:
@@ -74,14 +66,6 @@ class GalaxyProcessor(object):
             for i in range(0, num_of_features):
                 features[i].append(features_array[i])
 
-            # features1.append(features_array[0])
-            # features2.append(features_array[1])
-            # features3.append(features_array[2])
-            # features4.append(features_array[3])
-            # features5.append(features_array[4])
-            # features6.append(features_array[5])
-            # features7.append(features_array[6])
-            # features8.append(features_array[7])
             labels.append(label)
 
         for sample, label in zip(dataset.valid._img_names, dataset.valid._labels):
@@ -90,24 +74,12 @@ class GalaxyProcessor(object):
             file = self.get_image_path() + str(sample[0]) + ".jpg"
 
             # Compute the features and append to the list.
-            # feature_vector = self.get_features(file, sample[0], label[0])
-            # features.append(feature_vector)
-
             feature_array, label = self.get_features(file, sample[0], label[0])
 
             features[i].append(features_array[i])
 
-            # features1.append(features_array[0])
-            # features2.append(features_array[1])
-            # features3.append(features_array[2])
-            # features4.append(features_array[3])
-            # features5.append(features_array[4])
-            # features6.append(features_array[5])
-            # features7.append(features_array[6])
-            # features8.append(features_array[7])
             labels.append(label)
 
-        # feature_array_final = [features1, features2, features3, features4, features5, features6]
         return features, labels
 
     def load_image(self, filepath):
@@ -677,7 +649,18 @@ class GalaxyProcessor(object):
         return circularity
 
     def get_aspect_ratio(self, image):
+        """ Give the aspect ratio of the shape in the image.
 
+        Using OpenCV findContours to get the shape of the image.
+        Using OpenCV minAreaRect to get the width and height.
+        From that, we compute the ratio between width and height.
+
+        Args:
+            image: an OpenCV standard image format.
+
+        Returns:
+            The aspect ratio value of the shape in the image.
+        """
         white_image = self.white_image(image)
         im2, contours, hierarchy = cv2.findContours(white_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         cnt = contours[0]
@@ -690,7 +673,16 @@ class GalaxyProcessor(object):
 
 
     def get_non_zero_histogram_indexes(self, color_histogram, color):
+        """ Give the bin container with at least one pixel from a color histogram
+        for a specific color
 
+        Args:
+            color_histogram: an OpenCV standard color histogram.
+            color: the name of a specific color (blue, green or red)
+
+        Returns:
+            An array with bin containers with at least one pixel.
+        """
         if(color == "blue"):
             colorIndex = 0
         if (color == "green"):
@@ -703,6 +695,16 @@ class GalaxyProcessor(object):
         return histogramIndexes
 
     def get_non_zero_histogram_values(self, color_histogram, color):
+        """ Give the numbers of pixels for each bin container without
+         zero values from a color histogram for a specific color
+
+        Args:
+            color_histogram: an OpenCV standard color histogram.
+            color: the name of a specific color (blue, green or red)
+
+        Returns:
+            An array with numbers of pixels for each bin container without zero values
+        """
 
         if (color == "blue"):
             colorIndex = 0
@@ -712,7 +714,6 @@ class GalaxyProcessor(object):
             colorIndex = 2
 
         histogramIndexes = self.get_non_zero_histogram_indexes(color_histogram, color)
-
         histogramValues = color_histogram[colorIndex][histogramIndexes]
 
         return histogramValues
@@ -935,68 +936,20 @@ class GalaxyProcessor(object):
             image_file: the image's file being processed.
 
         Returns:
-            features: a feature vector of N dimensions for N features.
+            features: an array of feature vectors of N dimensions for N features.
         """
 
         print("Processing file : " + image_file)
 
         original_image = cv2.imread(filename=image_file)
 
-        queue = multiprocessing.Queue()
-
-        a = multiprocessing.Process(
-            target=self.features_color_RB_ratio,
-            args=(original_image,queue)
-        )
-        b = multiprocessing.Process(
-            target=self.features_color_std_RB_ratio,
-            args=(original_image,queue)
-        )
-        c = multiprocessing.Process(
-            target=self.feature_circularity,
-            args=(original_image,queue)
-        )
-        d = multiprocessing.Process(
-            target=self.feature_black_proportion,
-            args=(original_image,queue)
-        )
-        e = multiprocessing.Process(
-            target=self.feature_aspect_ratio,
-            args=(original_image,queue)
-        )
-        f = multiprocessing.Process(
-            target=self.feature_entropy,
-            args=(original_image,queue)
-        )
-        a.start()
-        b.start()
-        c.start()
-        d.start()
-        e.start()
-        f.start()
-
-        a.join()
-        b.join()
-        c.join()
-        d.join()
-        e.join()
-        f.join()
-
-        RB_ratio = queue.get()
-        std_RB_ratio = queue.get()
-        circularity = queue.get()
-        black_proportion = queue.get()
-        aspect_ratio = queue.get()
-        entropy = queue.get()
-
-
-        # RB_ratio, std_RB_ratio = self.features_color(original_image)
-        # circularity = self.feature_circularity(original_image)
-        # # correlation = self.feature_correlation(original_image)
-        # black_proportion = self.feature_black_proportion(original_image)
-        # aspect_ratio = self.feature_aspect_ratio(original_image)
-        # entropy = self.feature_entropy(original_image)
-        # # gini_coeff = self.featur
+        RB_ratio, std_RB_ratio = self.features_color(original_image)
+        circularity = self.feature_circularity(original_image)
+        correlation = self.feature_correlation(original_image)
+        black_proportion = self.feature_black_proportion(original_image)
+        aspect_ratio = self.feature_aspect_ratio(original_image)
+        entropy = self.feature_entropy(original_image)
+        # gini_coeff = self.feature_gini(original_image)
 
         print("RB RATIO: " + repr(RB_ratio))
         print("STD RB RATIO: " + repr(std_RB_ratio))

@@ -6,13 +6,17 @@ Course :
     GTI770 — Systèmes intelligents et apprentissage machine
 
 Project :
-    Lab # X - Lab's name
+    Lab # 1 - Extraction de primitives
 
 Students :
-    Names — Permanent Code
+    ARRON VUONG     -   VUOA09109300
+    PHILIPPE LE     -   LEXP12119302
+    SAMUEL GERVAIS  -   GERS04029200
 
 Group :
-    GTI770-H18-0X
+    GTI770-H18-02
+
+Note: This file is a helper for generating plots
 """
 
 import matplotlib.pyplot as plt
@@ -67,8 +71,8 @@ class Plot(object):
         Args:
             X : the feature vector.
             y : ground truth labels.
-            feature_name1 : a string defining the name of the first feature.
-            feature_name2 : a string defining the name of the second feature.
+            feature_name1 : an array of strings defining the name of the first feature.
+            feature_name2 : an array of strings defining the name of the second feature.
             filename : path where the plot is saved.
 
         Returns:
@@ -79,6 +83,8 @@ class Plot(object):
         plot_colors = "ryb"
         plot_step = 0.02
         target_names = ["smooth", "spiral", "artifact"]
+
+
 
         for pairidx, pair in enumerate([[0, 1], [0, 2], [0, 3],
                                         [1, 2], [1, 3], [2, 3]]):
@@ -103,8 +109,8 @@ class Plot(object):
             Z = Z.reshape(xx.shape)
             cs = plt.contourf(xx, yy, Z, cmap=plt.cm.RdYlBu)
 
-            plt.xlabel(feature_name1)
-            plt.ylabel(feature_name2)
+            plt.xlabel(feature_name1[pair[0]])
+            plt.ylabel(feature_name2[pair[1]])
 
             # Plot the training points
             for i, color in zip(range(n_classes), plot_colors):

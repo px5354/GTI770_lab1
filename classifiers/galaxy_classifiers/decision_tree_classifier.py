@@ -6,13 +6,15 @@ Course :
     GTI770 — Systèmes intelligents et apprentissage machine
 
 Project :
-    Lab # X - Lab's name
+    Lab # 1 - Extraction de primitives
 
 Students :
-    Names — Permanent Code
+    ARRON VUONG     -   VUOA09109300
+    PHILIPPE LE     -   LEXP12119302
+    SAMUEL GERVAIS  -   GERS04029200
 
 Group :
-    GTI770-H18-0X
+    GTI770-H18-02
 """
 
 from sklearn.tree import DecisionTreeClassifier
@@ -39,3 +41,9 @@ class TreeClassifier(object):
         X = ((X - mean) / std)
 
         return X
+
+    def train(self, X, y):
+        self.model.fit(X, y)
+
+    def predict(self, value):
+        return self.model.predict(value)
