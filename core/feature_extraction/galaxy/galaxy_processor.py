@@ -512,6 +512,12 @@ class GalaxyProcessor(object):
         cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if len(cnts) == 0:
             return image
+        if len(cnts[1]) == 0:
+            return image
+        if cnts is None:
+            return image
+        if cnts[1] is None:
+            return image
         cnts = cnts[1]
         c = max(cnts, key=cv2.contourArea)
 
