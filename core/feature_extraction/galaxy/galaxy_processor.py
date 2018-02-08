@@ -511,13 +511,11 @@ class GalaxyProcessor(object):
 
         cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         if len(cnts) == 0:
-            return image
+            cnts = 0
         if len(cnts[1]) == 0:
-            return image
+            cnts = 0
         if cnts is None:
-            return image
-        if cnts[1] is None:
-            return image
+            cnts = 0
         cnts = cnts[1]
         c = max(cnts, key=cv2.contourArea)
 
@@ -617,6 +615,8 @@ class GalaxyProcessor(object):
         """
 
         points = image.astype('float')
+        if(image.shape is None):
+            return 0
         rows, cols = image.shape
         black = 0
         count = 0
@@ -776,6 +776,10 @@ class GalaxyProcessor(object):
         img_color = self.remove_starlight(img_color, self.get_gray_image(img_color))
         clean_img = self.crop_image_with_extremes(img_color, 0)
 
+        # when the crop doesnt work
+        if (clean_img is None):
+            return 0
+
         color_histogram = self.get_color_histogram(img_color=clean_img)
 
         non_zero_blue = self.get_non_zero_histogram_values(color_histogram, "blue")
@@ -807,6 +811,9 @@ class GalaxyProcessor(object):
         img_color = self.remove_starlight(img_color, self.get_gray_image(img_color))
         clean_img = self.crop_image_with_extremes(img_color, 0)
 
+        if (clean_img is None):
+            return 0
+
         color_histogram = self.get_color_histogram(img_color=clean_img)
 
         non_zero_blue = self.get_non_zero_histogram_values(color_histogram, "blue")
@@ -836,6 +843,10 @@ class GalaxyProcessor(object):
 
         temp_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/temp_image.jpg"
         cropped_img = self.crop_image_with_extremes(image, 0)
+
+        if (cropped_img is None):
+            return 0
+
         white_image = self.white_image(cropped_img)
         clean_image = self.remove_little_shapes(white_image)
         cv2.imwrite(temp_path, clean_image)
@@ -858,6 +869,10 @@ class GalaxyProcessor(object):
         """
 
         cropped_img = self.crop_image_with_extremes(image, 0)
+
+        if (cropped_img is None):
+            return 0
+
         white_image = self.white_image(cropped_img)
         clean_image = self.remove_little_shapes(white_image)
         correlation = self.correlation(clean_image)
@@ -880,6 +895,10 @@ class GalaxyProcessor(object):
 
         temp_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/temp_image.jpg"
         cropped_img = self.crop_image_with_extremes(image, 0)
+
+        if (cropped_img is None):
+            return 0
+
         white_image = self.white_image(cropped_img)
         clean_image = self.remove_little_shapes(white_image)
         cv2.imwrite(temp_path, clean_image)
@@ -941,6 +960,8 @@ class GalaxyProcessor(object):
         """
 
         cropped_img = self.crop_image_with_extremes(image, 0)
+        if (cropped_img is None):
+            return 0
         gini = self.gini(self.get_gray_image(cropped_img))
 
         return gini
