@@ -84,8 +84,6 @@ class Plot(object):
         plot_step = 0.02
         target_names = ["smooth", "spiral", "artifact"]
 
-
-
         for pairidx, pair in enumerate([[0, 1], [0, 2], [0, 3],
                                         [1, 2], [1, 3], [2, 3]]):
 
@@ -111,6 +109,8 @@ class Plot(object):
 
             plt.xlabel(feature_name1[pair[0]])
             plt.ylabel(feature_name2[pair[1]])
+            # plt.xlabel(feature_name1)
+            # plt.ylabel(feature_name2)
 
             # Plot the training points
             for i, color in zip(range(n_classes), plot_colors):

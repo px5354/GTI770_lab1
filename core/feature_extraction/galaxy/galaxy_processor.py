@@ -27,6 +27,11 @@ import numpy as np
 import scipy.ndimage as nd
 from PIL import ImageEnhance, Image
 from scipy.stats.mstats import mquantiles
+import math
+import numpy as np
+import scipy.ndimage as nd
+from scipy.stats.mstats import mquantiles, kurtosis, skew
+from sklearn.preprocessing import LabelEncoder
 
 class GalaxyProcessor(object):
     """ Process galaxy images and extract the features."""
@@ -50,7 +55,6 @@ class GalaxyProcessor(object):
         """
         features = list()
         labels = list()
-
         for sample, label in zip(dataset.train._img_names, dataset.train._labels):
 
             # Get the file name associated with the galaxy ID.
