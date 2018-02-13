@@ -34,6 +34,7 @@ from commons.helpers.dataset.strategies.galaxy_dataset.feature_strategy import G
 from commons.helpers.dataset.strategies.galaxy_dataset.image_strategy import GalaxyDataSetImageStrategy
 from commons.helpers.dataset.strategies.galaxy_dataset.label_strategy import GalaxyDataSetLabelStrategy
 from commons.helpers.dataset.strategies.spam_dataset.feature_strategy import SpamDataSetFeatureStrategy
+from commons.preprocessors.discretization.context import DiscretizerContext
 from commons.preprocessors.discretization.strategies.unsupervised.unsupervised_discretization_strategy import \
     UnsupervisedDiscretizationStrategy
 from commons.preprocessors.discretization.strategies.supervised.supervised_discretization_strategy import \

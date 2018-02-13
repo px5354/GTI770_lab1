@@ -23,8 +23,8 @@ from sklearn.tree import DecisionTreeClassifier
 class TreeClassifier(object):
     """ An object containing a decision tree classifier. """
 
-    def __init__(self):
-        self.model = DecisionTreeClassifier(max_depth=3)
+    def __init__(self, max_depth):
+        self.model = DecisionTreeClassifier(max_depth=max_depth)
 
     def standardize(self, X):
         """ Standardize the data.
@@ -47,3 +47,6 @@ class TreeClassifier(object):
 
     def predict(self, value):
         return self.model.predict(value)
+
+    def score(self, X_test, y_test):
+        return self.model.score(X_test, y_test)

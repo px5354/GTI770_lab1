@@ -27,7 +27,6 @@ class SupervisedDiscretizationStrategy(object):
     """
 
     def __init__(self):
-        # self.transformer = None#MDLP()
         self.transformer = MDLP()
 
     def discretize(self, data_set, validation_size, nb_bins=None):
