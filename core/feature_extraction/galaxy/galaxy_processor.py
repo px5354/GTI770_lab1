@@ -75,7 +75,15 @@ class GalaxyProcessor(object):
             # Compute the features and append to the list.
             feature_array, label = self.get_features(file, sample[0], label[0])
 
-            features[i].append(features_array[i])
+            num_of_features = len(features_array)
+
+            if len(features) != num_of_features:
+                features = [[] for _ in range(num_of_features)]
+
+            for i in range(0, num_of_features):
+                features[i].append(features_array[i])
+
+            # features[i].append(features_array[i])
 
             labels.append(label)
 
@@ -510,13 +518,15 @@ class GalaxyProcessor(object):
         thresh = cv2.threshold(gray, 45, 255, cv2.THRESH_BINARY)[1]
 
         cnts = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        if len(cnts) == 0:
-            cnts = 0
-        if len(cnts[1]) == 0:
-            cnts = 0
-        if cnts is None:
-            cnts = 0
+        if len(cnts) == 0 or len(cnts[1]) == 0:
+            return image
+        elif cnts is None:
+            return image
+        elif cnts[1] is None:
+            return image
+
         cnts = cnts[1]
+
         c = max(cnts, key=cv2.contourArea)
 
         # determine the most extreme points along the contour
@@ -931,6 +941,7 @@ class GalaxyProcessor(object):
         return proportion
 
     def feature_entropy(self, image):
+
         """ Feature to give the entropy
 
         Using home made methods to prepare the image
