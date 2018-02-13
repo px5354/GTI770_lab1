@@ -28,6 +28,27 @@ from commons.helpers.graphics.plot import Plot
 from sklearn import tree
 from sklearn.model_selection import train_test_split
 
+def apply_noise_to_features(features, noise):
+    """ get features with a percentage of noise
+
+    Add a randomize value to apply noise to the features with
+    mu, sigma = 0, 0.10
+
+    https://stackoverflow.com/questions/14058340/adding-noise-to-a-signal-in-python#14058425
+
+    Args:
+        features: features to apply noise to
+        noise: noise to apply to dataset
+
+    Returns:
+        The features with a percentage of noise
+    """
+    mu, sigma = 0, 0.10
+    noise_value = np.random.normal(mu, sigma, [features.shape[0], features.shape[1]])
+    features_with_noise = features + noise_value
+    return features_with_noise
+
+
 def get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=None, noise=0):
     """ get the decision tree score
 
@@ -93,9 +114,7 @@ def main():
         X, y, test_size = 0.2, random_state = 0)
 
     get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=None)
-    get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=2)
     get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=3)
-    get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=4)
     get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=5)
     get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=10)
 

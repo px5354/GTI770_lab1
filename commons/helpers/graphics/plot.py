@@ -107,10 +107,10 @@ class Plot(object):
             Z = Z.reshape(xx.shape)
             cs = plt.contourf(xx, yy, Z, cmap=plt.cm.RdYlBu)
 
-            plt.xlabel(feature_name1[pair[0]])
-            plt.ylabel(feature_name2[pair[1]])
-            # plt.xlabel(feature_name1)
-            # plt.ylabel(feature_name2)
+            # plt.xlabel(feature_name1[pair[0]])
+            # plt.ylabel(feature_name2[pair[1]])
+            plt.xlabel(feature_name1)
+            plt.ylabel(feature_name2)
 
             # Plot the training points
             for i, color in zip(range(n_classes), plot_colors):
