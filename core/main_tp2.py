@@ -24,6 +24,8 @@ Notes : This file is to generate everything we want from feature vectors compute
 
 import os
 import numpy as np
+import random
+from random import choice
 from sklearn import tree
 from sklearn.model_selection import train_test_split
 from commons.helpers.dataset.context import Context
@@ -88,9 +90,19 @@ def get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=None):
     else:
         print("max depth: " + str(max_depth))
 
-    print(score)
+    print("score: " + str(score))
 
     return score
+
+def train_set_with_size(trainSet, proportion, state):
+
+    features = trainSet.get_features
+    labels = trainSet.get_labels
+
+    _, train_features, _, train_labels = train_test_split(features, labels, test_size=proportion, random_state =state)
+
+    return train_features, train_labels
+
 
 def main():
 
@@ -102,30 +114,34 @@ def main():
 
     spam_feature_csv_file = os.environ["VIRTUAL_ENV"] + "/data/csv/spam/spam.csv"
 
+    spam_dataset = context.load_dataset(csv_file=spam_feature_csv_file, one_hot=False, validation_size=np.float32(validation_size))
 
-    spam_feature_dataset = context.load_dataset(csv_file=spam_feature_csv_file, one_hot=False,
-                                                validation_size=np.float32(validation_size))
+    spam_dataset_train = spam_dataset.train
+    spam_dataset_valid = spam_dataset.valid
 
-    noises_array = [0, 0.05, 0.10, 0.20]
+    noises = [0, 0.05, 0.10, 0.20]
+    proportions = [0.20, 0.5, 0.75, 1]
+    state = 1
 
-    for i in noises_array:
-        noise = i
-        print("noise: " + str(noise))
-        spam_train_features = apply_noise_to_features(spam_feature_dataset.train.get_features, noise)
-        spam_train_labels = spam_feature_dataset.train.get_labels
+    for proportion in proportions:
+        for noise in noises:
+            print("noise: " + str(noise))
+            print("proportion: " + str(proportion))
 
-        spam_valid_features = apply_noise_to_features(spam_feature_dataset.valid.get_features, noise)
-        spam_valid_labels = spam_feature_dataset.valid.get_labels
+            train_features, train_labels = train_set_with_size(spam_dataset_train, proportion, state)
+            train_features = apply_noise_to_features(train_features, noise)
 
-        get_decision_tree_score(spam_train_features, spam_valid_features, spam_train_labels, spam_valid_labels,
-                                max_depth=None)
-        get_decision_tree_score(spam_train_features, spam_valid_features, spam_train_labels, spam_valid_labels,
-                                max_depth=3)
-        get_decision_tree_score(spam_train_features, spam_valid_features, spam_train_labels, spam_valid_labels,
-                                max_depth=5)
-        get_decision_tree_score(spam_train_features, spam_valid_features, spam_train_labels, spam_valid_labels,
-                                max_depth=10)
-        print("___________________________________")
+            valid_features = apply_noise_to_features(spam_dataset_valid.get_features, noise)
+            valid_labels = spam_dataset_valid.get_labels
+
+            get_decision_tree_score(train_features, valid_features, train_labels, valid_labels, max_depth=None)
+            get_decision_tree_score(train_features, valid_features, train_labels, valid_labels, max_depth=3)
+            get_decision_tree_score(train_features, valid_features, train_labels, valid_labels, max_depth=5)
+            get_decision_tree_score(train_features, valid_features, train_labels, valid_labels, max_depth=10)
+            print("___________________________________________________________")
+
+            state = state + 1
+
 
     print("hello")
 
