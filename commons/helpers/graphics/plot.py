@@ -92,6 +92,7 @@ class Plot(object):
 
             # Train a decision tree.
             clf = TreeClassifier()
+
             clf.train(X=x_features_train, y=y)
 
             # Plot the decision boundary

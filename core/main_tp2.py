@@ -25,6 +25,8 @@ Notes : This file is to generate everything we want from feature vectors compute
 import os
 import numpy as np
 from classifiers.galaxy_classifiers.decision_tree_classifier import TreeClassifier
+import random
+from random import choice
 from sklearn.model_selection import train_test_split
 from classifiers.galaxy_classifiers.knn_classifier import KNNClassifier
 from classifiers.galaxy_classifiers.gaussian_naive_bayes_classifier import GaussianNaiveBayesClassifier
@@ -36,6 +38,8 @@ from commons.preprocessors.discretization.strategies.unsupervised.unsupervised_d
     UnsupervisedDiscretizationStrategy
 from commons.preprocessors.discretization.strategies.supervised.supervised_discretization_strategy import \
     SupervisedDiscretizationStrategy
+
+from sklearn.metrics import f1_score
 
 # def extract_smaller_size_of_dataset(dataset, ratio):
 #     """ get smaller size of the dataset according to a ratio
@@ -66,12 +70,13 @@ def apply_noise_to_features(dataset, noise):
     Returns:
         The dataset with a percentage of noise
     """
-    mu, sigma = 0, 0.10
+    mu = 0
+    sigma = noise
     noise_value = np.random.normal(mu, sigma, [dataset.shape[0], dataset.shape[1]])
     features_with_noise = dataset + noise_value
     return features_with_noise
 
-def get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=None):
+def get_decision_tree(X_train, y_train, max_depth=None):
     """ get the decision tree score
 
     Use scikit-learn methods to compute a decision tree score
@@ -89,49 +94,39 @@ def get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=None):
 
     clf = TreeClassifier(max_depth=max_depth)
     clf.train(X_train, y_train)
-    score = clf.score(X_test, y_test)
 
-    if max_depth is None:
-        print("max depth: None")
-    else:
-        print("max depth: " + str(max_depth))
+    return clf
 
-    print(score)
-
-    return score
-
-def get_knn_score(X_train, X_test, y_train, y_test, n_neighbors, weights):
+def get_knn(X_train, y_train, n_neighbors, weights):
 
     knn = KNNClassifier(n_neighbors, weights)
     knn.train(X_train, y_train)
-    score = knn.score(X_test, y_test)
 
-    print("n_neighbors: " + str(n_neighbors))
-    print("weights: " + weights)
-    print(score)
+    return knn
 
-    return score
-
-def get_gaussian_naive_bayes_score(X_train, X_test, y_train, y_test, priors=None):
+def get_gaussian_naive_bayes(X_train, y_train, priors=None):
 
     gnb = GaussianNaiveBayesClassifier(priors=priors)
     gnb.train(X_train, y_train)
-    score = gnb.score(X_test, y_test)
 
-    print("priors: " + str(priors))
-    print(score)
+    return gnb
 
-    return score
+def get_multinomial_naive_bayes(X_train, y_train, fit_prior=False, class_prior=None):
 
-def get_multinomial_naive_bayes_score(X_train, X_test, y_train, y_test):
-
-    mnb = MultinomialNaiveBayesClassifier()
+    mnb = MultinomialNaiveBayesClassifier(fit_prior, class_prior)
     mnb.train(X_train, y_train)
-    score = mnb.score(X_test, y_test)
 
-    print(score)
+    return mnb
 
-    return score
+def train_set_with_size(trainSet, proportion, state):
+
+    features = trainSet.get_features
+    labels = trainSet.get_labels
+
+    _, train_features, _, train_labels = train_test_split(features, labels, test_size=proportion, random_state =state)
+
+    return train_features, train_labels
+
 
 def main():
 
@@ -143,35 +138,138 @@ def main():
 
     spam_feature_csv_file = os.environ["VIRTUAL_ENV"] + "/data/csv/spam/spam.csv"
 
+    spam_dataset = context.load_dataset(csv_file=spam_feature_csv_file, one_hot=False, validation_size=np.float32(validation_size))
 
-    spam_feature_dataset = context.load_dataset(csv_file=spam_feature_csv_file, one_hot=False,
-                                                validation_size=np.float32(validation_size))
+    spam_dataset_train = spam_dataset.train
+    spam_dataset_valid = spam_dataset.valid
 
-    # For TP02, set the discretization strategy and discretize data.
-    preprocessor_context = DiscretizerContext(SupervisedDiscretizationStrategy())
+    noises = [0, 0.05, 0.10, 0.20]
+    proportions = [0.20, 0.5, 0.75, 1]
+    state = 1
 
-    supervised_discretised_dataset = preprocessor_context.discretize(data_set=spam_feature_dataset,
-                                                                     validation_size=np.float32(validation_size))
+    tree_params_array = [0, 3, 5, 10]
+    knn_params_array = [3, 5, 10]
 
-    preprocessor_context.set_strategy(UnsupervisedDiscretizationStrategy())
-
-    unsupervised_discretised_dataset = preprocessor_context.discretize(data_set=spam_feature_dataset,
-                                                                       validation_size=np.float32(validation_size))
-
-    noises_array = [0, 0.05, 0.10, 0.20]
-
-    # for i in noises_array:
-    #     noise = i
-    #     print("noise: " + str(noise))
-    spam_train_features = spam_feature_dataset.train.get_features
-    spam_train_labels = spam_feature_dataset.train.get_labels
-
-    spam_valid_features = spam_feature_dataset.valid.get_features
-    spam_valid_labels = spam_feature_dataset.valid.get_labels
+    # n_neighbors, weights
 
 
-    get_gaussian_naive_bayes_score(spam_train_features, spam_valid_features, spam_train_labels, spam_valid_labels,
-                                   [0.4003, 0.5997])
+    results_tree = list()
+    results_knn = list()
+
+
+    # for proportion in proportions:
+    #     for noise in noises:
+    #         print("noise: " + str(noise))
+    #         print("proportion: " + str(proportion))
+    #
+    #         train_features, train_labels = train_set_with_size(spam_dataset_train, proportion, state)
+    #         train_features = apply_noise_to_features(train_features, noise)
+    #
+    #         valid_features = apply_noise_to_features(spam_dataset_valid.get_features, noise)
+    #         valid_labels = spam_dataset_valid.get_labels
+    #
+    #         get_decision_tree_score(train_features, valid_features, train_labels, valid_labels, max_depth=None)
+    #         get_decision_tree_score(train_features, valid_features, train_labels, valid_labels, max_depth=3)
+    #         get_decision_tree_score(train_features, valid_features, train_labels, valid_labels, max_depth=5)
+    #         get_decision_tree_score(train_features, valid_features, train_labels, valid_labels, max_depth=10)
+    #         print("___________________________________________________________")
+    #
+    #         state = state + 1
+
+    # preprocessor_context = DiscretizerContext(SupervisedDiscretizationStrategy())
+    #
+    # supervised_discretised_dataset = preprocessor_context.discretize(data_set=spam_dataset,
+    #                                                                  validation_size=np.float32(validation_size))
+    #
+    # preprocessor_context.set_strategy(UnsupervisedDiscretizationStrategy())
+    #
+    # unsupervised_discretised_dataset = preprocessor_context.discretize(data_set=spam_dataset,
+    #                                                                    validation_size=np.float32(validation_size))
+
+    for max_depth in tree_params_array:
+
+        if(max_depth == 0):
+            trained_tree_classifier = get_decision_tree(spam_dataset_train.get_features, spam_dataset_train.get_labels,
+                                                        max_depth=None)
+            params = "max_depth=None"
+        else:
+            trained_tree_classifier = get_decision_tree(spam_dataset_train.get_features, spam_dataset_train.get_labels,
+                                                        max_depth=max_depth)
+            params = "max_depth=" + str(max_depth)
+
+        y_pred = trained_tree_classifier.predict(spam_dataset_valid.get_features)
+        y_true = spam_dataset_valid.get_labels
+
+        score_result = trained_tree_classifier.score(spam_dataset_valid.get_features,
+                                                             spam_dataset_valid.get_labels)
+        f1_score_result = f1_score(y_true, y_pred, average='weighted')
+
+        results_tree.append([params, score_result, f1_score_result])
+
+    for n_neighbors in knn_params_array:
+        for weights in ['uniform', 'distance']:
+            trained_knn_classifier = get_knn(spam_dataset_train.get_features, spam_dataset_train.get_labels,
+                                             n_neighbors, weights)
+            params = "n_neighbors=" + str(n_neighbors) + ";weights=" + weights
+
+            y_pred = trained_knn_classifier.predict(spam_dataset_valid.get_features)
+            y_true = spam_dataset_valid.get_labels
+
+            score_result = trained_knn_classifier.score(spam_dataset_valid.get_features,
+                                                        spam_dataset_valid.get_labels)
+            f1_score_result = f1_score(y_true, y_pred, average='weighted')
+
+            results_knn.append([params, score_result, f1_score_result])
+
+
+    # trained_dt_classifier_none_spam = get_decision_tree(spam_dataset_train.get_features,
+    #                                                     spam_dataset_train.get_labels,
+    #                                                     max_depth=None)
+
+    # trained_dt_classifier_3_spam = get_decision_tree(spam_dataset_train.get_features,
+    #                                                     spam_dataset_train.get_labels, max_depth=3)
+    #
+    # trained_dt_classifier_5_spam = get_decision_tree(spam_dataset_train.get_features,
+    #                                                     spam_dataset_train.get_labels,
+    #                                                     max_depth=5)
+    #
+    # trained_dt_classifier_10_spam = get_decision_tree(spam_dataset_train.get_features,
+    #                                                     spam_dataset_train.get_labels,
+    #                                                     max_depth=10)
+
+    # trained_knn_classifier_3_uniform_spam = get_knn(spam_dataset_train.get_features,
+    #                                                 spam_dataset_train.get_labels,
+    #                                                 3, 'uniform')
+    # trained_knn_classifier_5_uniform_spam = get_knn(spam_dataset_train.get_features,
+    #                                                 spam_dataset_train.get_labels,
+    #                                                 5, 'uniform')
+    # trained_knn_classifier_10_uniform_spam = get_knn(spam_dataset_train.get_features,
+    #                                                 spam_dataset_train.get_labels,
+    #                                                 10, 'uniform')
+    #
+    # trained_knn_classifier_3_distance_spam = get_knn(spam_dataset_train.get_features,
+    #                                                 spam_dataset_train.get_labels,
+    #                                                 3, 'distance')
+    # trained_knn_classifier_5_distance_spam = get_knn(spam_dataset_train.get_features,
+    #                                                 spam_dataset_train.get_labels,
+    #                                                 5, 'distance')
+    # trained_knn_classifier_10_distance_spam = get_knn(spam_dataset_train.get_features,
+    #                                                 spam_dataset_train.get_labels,
+    #                                                 10, 'distance')
+    #
+    # trained_gnb_classifier_prob_spam = get_gaussian_naive_bayes(spam_dataset_train.get_features,
+    #                                                        spam_dataset_train.get_labels,
+    #                                                        [0.4003, 0.5997])
+    #
+    # trained_mnb_classifier_prob_spam = get_multinomial_naive_bayes(spam_dataset_train.get_features,
+    #                                                                spam_dataset_train.get_labels,
+    #                                                                True, [0.4003, 0.5997])
+    #
+    # trained_mnb_classifier_supervised_spam = get_multinomial_naive_bayes(
+    #     supervised_discretised_dataset.train.get_features, supervised_discretised_dataset.train.get_labels)
+    #
+    # trained_mnb_classifier_unsupervised_spam = get_multinomial_naive_bayes(
+    #     unsupervised_discretised_dataset.train.get_features, unsupervised_discretised_dataset.train.get_labels)
 
 
     # print("Decision Tree :")
@@ -193,6 +291,7 @@ def main():
     # get_knn_score(spam_train_features, spam_valid_features, spam_train_labels, spam_valid_labels, 5, 'distance')
     # get_knn_score(spam_train_features, spam_valid_features, spam_train_labels, spam_valid_labels, 10, 'distance')
     # print("___________________________________")
+
 
     print("hello")
 

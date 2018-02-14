@@ -16,98 +16,102 @@ Students :
 Group :
     GTI770-H18-02
 
-Notes : This file is to generate everything we want from feature vectors computed in the main file.
-        This file will generate classify the galaxies with the feature vectors
-        It will also generate a plot for comparing different features and
-        generate a plot of the tree decision surface of the different features
+Notes : This file is the main program file. Please note that this project might be over-commented compared to a real,
+        industry-class framework.
+        This framework is used as a part of the GTI770 course at Ecole de technologie superieure of Montreal. The amount
+        of comments is only to make sure everyone from all level can clearly understand the code given to complete
+        the class assignment.
 """
 
-import os
+import timeit
 import numpy as np
-from commons.helpers.graphics.plot import Plot
-from sklearn import tree
-from sklearn.model_selection import train_test_split
+import os
 
-def get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=None, noise=0):
-    """ get the decision tree score
+from commons.helpers.dataset.context import Context
+from commons.preprocessors.discretization.context import DiscretizerContext
+from commons.helpers.dataset.strategies.galaxy_dataset.feature_strategy import GalaxyDataSetFeatureStrategy
+from commons.helpers.dataset.strategies.galaxy_dataset.image_strategy import GalaxyDataSetImageStrategy
+from commons.helpers.dataset.strategies.galaxy_dataset.label_strategy import GalaxyDataSetLabelStrategy
+from commons.helpers.dataset.strategies.spam_dataset.feature_strategy import SpamDataSetFeatureStrategy
+from commons.preprocessors.discretization.strategies.unsupervised.unsupervised_discretization_strategy import \
+    UnsupervisedDiscretizationStrategy
+from commons.preprocessors.discretization.strategies.supervised.supervised_discretization_strategy import \
+    SupervisedDiscretizationStrategy
 
-    Use scikit-learn methods to compute a decision tree score
-
-    Args:
-        X_train: The training values
-        X_test: The test values
-        y_train: Training labels
-        y_test: Test labels
-        max_depth: maximum depth for the tree
-        noise: noise to apply to training set
-
-    Returns:
-        The score.
-    """
-
-    if noise != 0:
-        noise_value = np.random.normal(0, 0.10, [X_test.shape[0], X_test.shape[1]])
-        X_test = X_test + noise_value
-
-    clf = tree.DecisionTreeClassifier(max_depth=max_depth)
-    clf = clf.fit(X_train, y_train)
-    score = clf.score(X_test, y_test)
-
-    if max_depth is None:
-        print("max depth: None")
-    else:
-        print("max depth: " + str(max_depth))
-
-    print("noise: " + str(noise))
-    print(score)
-
-    return score
 
 def main():
-    galaxy_feature1_vector_path = os.environ[
-                                      "VIRTUAL_ENV"] + "/data/csv/galaxy/exported_personal_feature1.csv"
-    galaxy_feature2_vector_path = os.environ[
-                                      "VIRTUAL_ENV"] + "/data/csv/galaxy/exported_personal_feature3.csv"
-    galaxy_feature3_vector_path = os.environ[
-                                      "VIRTUAL_ENV"] + "/data/csv/galaxy/exported_personal_feature4.csv"
-    galaxy_feature4_vector_path = os.environ[
-                                      "VIRTUAL_ENV"] + "/data/csv/galaxy/exported_personal_feature2.csv"
-    galaxy_label_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/exported_personal_label_galaxy.csv"
+    """
+        Program's entry point.
+    """
 
-    result_feat_comparison_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/feature_comparison_"
+    start = timeit.default_timer()
 
-    result_tree_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/decision_tree.png"
+    # The desired validation size.
+    validation_size = 0.2
 
-    features1 = np.loadtxt(open(galaxy_feature1_vector_path, "rb"), delimiter=",", skiprows=0)
-    features2 = np.loadtxt(open(galaxy_feature2_vector_path, "rb"), delimiter=",", skiprows=0)
-    features3 = np.loadtxt(open(galaxy_feature3_vector_path, "rb"), delimiter=",", skiprows=0)
-    features4 = np.loadtxt(open(galaxy_feature4_vector_path, "rb"), delimiter=",", skiprows=0)
+    # Get the ground truth CSV file from script's parameters.
+    #galaxy_csv_file = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/galaxy.csv"
+    galaxy_feature_csv_file = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/galaxy_feature_vectors.csv"
+    #spam_feature_csv_file = os.environ["VIRTUAL_ENV"] + "/data/csv/spam/spam.csv"
 
-    features = [features1, features2, features3, features4]
-    labels = np.loadtxt(open(galaxy_label_path, "rb"), delimiter=",", skiprows=0)
+    #galaxy_images_path = os.environ["VIRTUAL_ENV"] + "/data/images/"
+    #galaxy_feature_vector_export_path = os.environ[
+    #                                        "VIRTUAL_ENV"] + "/data/csv/galaxy/exported_personal_galaxy_feature_vectors.csv"
+    #galaxy_mlp_export_path = os.environ["VIRTUAL_ENV"] + "/data/models/exports/MLP/my_mlp"
 
-    X = np.vstack((features1, features2, features3, features4)).T
-    y = labels
+    # Create instance of data set loading strategies.
+    #galaxy_image_data_set_strategy = GalaxyDataSetImageStrategy()
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size = 0.2, random_state = 0)
+    galaxy_feature_data_set_strategy = GalaxyDataSetFeatureStrategy()
+    galaxy_label_data_set_strategy = GalaxyDataSetLabelStrategy()
 
-    get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=None)
-    get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=2)
-    get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=3)
-    get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=4)
-    get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=5)
-    get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=10)
+    #spam_feature_dataset_strategy = SpamDataSetFeatureStrategy()
 
-    get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=5, noise=0.05)
-    get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=5, noise=0.10)
-    get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=5, noise=0.15)
+    # Set the context to galaxy image data set loading strategy.
+    #context = Context(galaxy_image_data_set_strategy)
+    #img_dataset = context.load_dataset(csv_file=galaxy_csv_file, one_hot=True,
+    #                                   validation_size=np.float32(validation_size))
 
-    # Plot.plot_tree_decision_surface(X, labels, ["RB_ratio", "entropy", "gini", "light radius diff"],
-    #                                 ["RB_ratio", "entropy", "gini", "light radius diff"], result_tree_path)
+    # Set the context to galaxy feature data set loading strategy.
+    context = Context(galaxy_feature_data_set_strategy)
+    feature_oneHot_dataset = context.load_dataset(csv_file=galaxy_feature_csv_file, one_hot=True,
+                                                  validation_size=np.float32(0.2))
 
-    for i in range(0, 3):
-        Plot.plot_feature_comparison(features[i], features[i], labels, result_feat_comparison_path + str(i) + ".png")
+    feature_dataset = context.load_dataset(csv_file=galaxy_feature_csv_file, one_hot=False,
+                                           validation_size=np.float32(0.2))
+
+    # Set the context to galaxy label data set loading strategy.
+    context.set_strategy(galaxy_label_data_set_strategy)
+    label_dataset = context.load_dataset(csv_file=galaxy_feature_csv_file, one_hot=False,
+                                         validation_size=np.float32(validation_size))
+
+    # context.set_strategy(spam_feature_dataset_strategy)
+    # spam_feature_dataset = context.load_dataset(csv_file=spam_feature_csv_file, one_hot=False,
+    #                                             validation_size=np.float32(validation_size))
+
+    # For TP02, set the discretization strategy and discretize data.
+    # preprocessor_context = DiscretizerContext(SupervisedDiscretizationStrategy())
+    #
+    # supervised_discretised_dataset = preprocessor_context.discretize(data_set=feature_dataset,
+    #                                                                  validation_size=np.float32(validation_size))
+    #
+    # preprocessor_context.set_strategy(UnsupervisedDiscretizationStrategy())
+    #
+    # unsupervised_discretised_dataset = preprocessor_context.discretize(data_set=feature_dataset,
+    #                                                                    validation_size=np.float32(validation_size))
+
+    # # Process galaxies.
+    #galaxy_processor = GalaxyProcessor(galaxy_images_path)
+    #features = galaxy_processor.process_galaxy(label_dataset)
+    #features, labels = galaxy_processor.process_galaxy(label_dataset)
+
+    # # Save extracted features to file.
+    # galaxy_feature_vector_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/exported_personal_feature"
+    # galaxy_label_path = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/exported_personal_label_galaxy.csv"
+
+    stop = timeit.default_timer()
+    print(stop - start)
+
 
 if __name__ == '__main__':
     main()

@@ -67,7 +67,7 @@ def get_decision_tree_score(X_train, X_test, y_train, y_test, max_depth=None, no
     """
 
     if noise != 0:
-        noise_value = np.random.normal(0, 0.10, [X_test.shape[0], X_test.shape[1]])
+        noise_value = np.random.normal(0, noise, [X_test.shape[0], X_test.shape[1]])
         X_test = X_test + noise_value
 
     clf = tree.DecisionTreeClassifier(max_depth=max_depth)
