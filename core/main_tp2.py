@@ -25,6 +25,7 @@ Notes : This file is to generate everything we want from feature vectors compute
 import os
 import numpy as np
 from classifiers.galaxy_classifiers.decision_tree_classifier import TreeClassifier
+from sklearn.model_selection import KFold
 import random
 from random import choice
 from sklearn.model_selection import train_test_split
@@ -208,6 +209,116 @@ def train_set_with_size(trainSet, proportion, state):
 
     return train_features, train_labels
 
+def split_data_for_k_fold(X, y, n_splits=10):
+    kf = KFold(n_splits=n_splits)
+    kf.get_n_splits(X)
+
+    for train_index, test_index in kf.split(X):
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+
+    return X_train, y_train, X_test, y_test
+
+
+def get_tree_results(tree_params, X_train, y_train, X_test, y_test):
+    # ------------------------ TREE ------------------------
+    results_tree = list()
+
+    for max_depth in tree_params:
+
+        if (max_depth == 0):
+            trained_tree_classifier = get_decision_tree(X_train, y_train, max_depth=None)
+            params = "max_depth=None"
+        else:
+            trained_tree_classifier = get_decision_tree(X_train, y_train, max_depth=max_depth)
+            params = "max_depth=" + str(max_depth)
+
+        y_pred = trained_tree_classifier.predict(X_test)
+        y_true = y_test
+
+        score_result = trained_tree_classifier.score(X_test, y_test)
+        f1_score_result = f1_score(y_true, y_pred, average='weighted')
+
+        results_tree.append([params, score_result, f1_score_result])
+
+    print("TREE: ", results_tree)
+    return results_tree
+
+def get_knn_results(neighbors, weights, X_train, y_train, X_test, y_test):
+    # ------------------------ KNN ------------------------
+    results_knn = list()
+    for neighbor in neighbors:
+        for weight in weights:
+            trained_knn_classifier = get_knn(X_train, y_train, neighbor, weight)
+            params = "n_neighbors=" + str(neighbor) + ";weights=" + weight
+
+            y_pred = trained_knn_classifier.predict(X_test)
+            y_true = y_test
+
+            score_result = trained_knn_classifier.score(X_test, y_test)
+            f1_score_result = f1_score(y_true, y_pred, average='weighted')
+
+            results_knn.append([params, score_result, f1_score_result])
+
+    print("KNN: ", results_knn)
+    return results_knn
+
+def get_naive_bayes_results(multinomial_naive_bayes_datasets, class_prob, is_k_fold=False):
+
+    naive_bayes_results = list()
+    normal_dataset = multinomial_naive_bayes_datasets[0][1]
+
+    if is_k_fold:
+        X_train, y_train, X_test, y_test = split_data_for_k_fold(normal_dataset.valid.get_features,
+                                                                 normal_dataset.valid.get_labels)
+    else :
+        X_train = normal_dataset.train.get_features
+        y_train = normal_dataset.train.get_labels
+        X_test = normal_dataset.valid.get_features
+        y_test = normal_dataset.valid.get_labels
+
+    # Gaussian Naive Bayes
+    naive_bayes_classifier = get_gaussian_naive_bayes(X_train, y_train, class_prob)
+
+    y_pred = naive_bayes_classifier.predict(X_test)
+    y_true = y_test
+
+    gaussian_score_result = naive_bayes_classifier.score(X_test, y_test)
+    gaussian_f1_score_result = f1_score(y_true, y_pred, average='weighted')
+
+    # Multinomial Naive Bayes
+
+    for i, mnb_dataset in enumerate(multinomial_naive_bayes_datasets):
+        dataset = mnb_dataset[1]
+
+        if is_k_fold:
+            X_train, y_train, X_test, y_test = split_data_for_k_fold(dataset.valid.get_features,
+                                                                     dataset.valid.get_labels)
+        else:
+            X_train = dataset.train.get_features
+            y_train = dataset.train.get_labels
+            X_test = dataset.valid.get_features
+            y_test = dataset.valid.get_labels
+
+        if i == 0:
+            naive_bayes_classifier = get_multinomial_naive_bayes(X_train, y_train, True, class_prob)
+        else:
+            naive_bayes_classifier = get_multinomial_naive_bayes(X_train, y_train)
+
+        y_pred = naive_bayes_classifier.predict(X_test)
+        y_true = y_test
+
+        score_result = naive_bayes_classifier.score(X_test, y_test)
+        f1_score_result = f1_score(y_true, y_pred, average='weighted')
+
+        if i == 0:
+            naive_bayes_results.append(['multinomial', score_result, f1_score_result])
+        else:
+            naive_bayes_results.append(['multinomial_' + mnb_dataset[0], score_result, f1_score_result])
+
+    naive_bayes_results.append(['gaussian', gaussian_score_result, gaussian_f1_score_result])
+    print("NAIVE BAYES: ", naive_bayes_results)
+    return naive_bayes_results
 
 def main():
 
@@ -225,15 +336,46 @@ def main():
     context = Context(spam_feature_dataset_strategy)
     spam_dataset = context.load_dataset(csv_file=spam_feature_csv_file, one_hot=False,
                                         validation_size=np.float32(validation_size))
-    spam_dataset_train = spam_dataset.train
-    spam_dataset_valid = spam_dataset.valid
+
+    preprocessor_context = DiscretizerContext(SupervisedDiscretizationStrategy())
+
+    supervised_discretised_dataset = preprocessor_context.discretize(data_set=spam_dataset,
+                                                                     validation_size=np.float32(validation_size))
+
+    preprocessor_context.set_strategy(UnsupervisedDiscretizationStrategy())
+
+    unsupervised_discretised_dataset = preprocessor_context.discretize(data_set=spam_dataset,
+                                                                       validation_size=np.float32(validation_size))
+
+    cross_spam_dataset = context.load_dataset(csv_file=spam_feature_csv_file, one_hot=False,
+                                        validation_size=np.float32(1)).valid
+
+    multinomial_datasets = [["spam_dataset", spam_dataset],
+                                        ["supervised_discretised_dataset", supervised_discretised_dataset],
+                                        ["unsupervised_discretised_dataset", unsupervised_discretised_dataset]]
+    # normal validation
+    spam_X_train = spam_dataset.train.get_features
+    spam_y_train = spam_dataset.train.get_labels
+    spam_X_test = spam_dataset.valid.get_features
+    spam_y_test = spam_dataset.valid.get_labels
+    spam_class_prob = [0.4003, 0.5997]
+
+    tree_params = [0, 3, 5, 10]
+    neighbors_params = [3, 5, 10]
+    weights_params = ['uniform', 'distance']
 
 
-    context = Context(galaxy_feature_dataset_strategy)
-    galaxy_dataset = context.load_dataset(csv_file=galaxy_feature_csv_file, one_hot=False,
-                                        validation_size=np.float32(validation_size))
-    galaxy_dataset_train = galaxy_dataset.train
-    galaxy_dataset_valid = galaxy_dataset.valid
+    # spam_cross_X_train = cross_spam_dataset.valid.get_features
+    # spam_cross_y_train = cross_spam_dataset.train.get_labels
+    # spam_cross_X_test = cross_spam_dataset.valid.get_features
+    # spam_cross_y_test = cross_spam_dataset.valid.get_labels
+
+
+    # context = Context(galaxy_feature_dataset_strategy)
+    # galaxy_dataset = context.load_dataset(csv_file=galaxy_feature_csv_file, one_hot=False,
+    #                                     validation_size=np.float32(validation_size))
+    # galaxy_dataset_train = galaxy_dataset.train
+    # galaxy_dataset_valid = galaxy_dataset.valid
 
     # noises = [0, 0.05, 0.10, 0.20]
     # proportions = [0.20, 0.5, 0.75, 1]
@@ -258,129 +400,37 @@ def main():
     #
     #         state = state + 1
 
-    preprocessor_context = DiscretizerContext(SupervisedDiscretizationStrategy())
-
-    supervised_discretised_dataset = preprocessor_context.discretize(data_set=spam_dataset,
-                                                                     validation_size=np.float32(validation_size))
-
-    preprocessor_context.set_strategy(UnsupervisedDiscretizationStrategy())
-
-    unsupervised_discretised_dataset = preprocessor_context.discretize(data_set=spam_dataset,
-                                                                       validation_size=np.float32(validation_size))
-
-    spam_class_probs = [0.4003, 0.5997]
-
-    tree_params_array = [0, 3, 5, 10]
-    knn_params_array = [3, 5, 10]
-
-    results_tree = list()
-    results_knn = list()
-    results_gaussian_naive_bayes = list()
-    results_multinomial_naive_bayes = list()
-
-    multinomial_naive_bayes_datasets = [["spam_dataset", spam_dataset],
-                                        ["supervised_discretised_dataset", supervised_discretised_dataset],
-                                        ["unsupervised_discretised_dataset", unsupervised_discretised_dataset]]
     # decision tree
-    for max_depth in tree_params_array:
-
-        if(max_depth == 0):
-            trained_tree_classifier = get_decision_tree(spam_dataset_train.get_features, spam_dataset_train.get_labels,
-                                                        max_depth=None)
-            params = "max_depth=None"
-        else:
-            trained_tree_classifier = get_decision_tree(spam_dataset_train.get_features, spam_dataset_train.get_labels,
-                                                        max_depth=max_depth)
-            params = "max_depth=" + str(max_depth)
-
-        y_pred = trained_tree_classifier.predict(spam_dataset_valid.get_features)
-        y_true = spam_dataset_valid.get_labels
-
-        score_result = trained_tree_classifier.score(spam_dataset_valid.get_features,
-                                                             spam_dataset_valid.get_labels)
-        f1_score_result = f1_score(y_true, y_pred, average='weighted')
-
-        results_tree.append([params, score_result, f1_score_result])
+    get_tree_results(tree_params, spam_X_train, spam_y_train, spam_X_test, spam_y_test)
 
     # knn
-    for n_neighbors in knn_params_array:
-        for weights in ['uniform', 'distance']:
-            trained_knn_classifier = get_knn(spam_dataset_train.get_features, spam_dataset_train.get_labels,
-                                             n_neighbors, weights)
-            params = "n_neighbors=" + str(n_neighbors) + ";weights=" + weights
+    get_knn_results(neighbors_params, weights_params, spam_X_train, spam_y_train, spam_X_test, spam_y_test)
 
-            y_pred = trained_knn_classifier.predict(spam_dataset_valid.get_features)
-            y_true = spam_dataset_valid.get_labels
+    # Naive Bayes
+    get_naive_bayes_results(multinomial_datasets, spam_class_prob)
 
-            score_result = trained_knn_classifier.score(spam_dataset_valid.get_features,
-                                                        spam_dataset_valid.get_labels)
-            f1_score_result = f1_score(y_true, y_pred, average='weighted')
-            results_knn.append([params, score_result, f1_score_result])
-
-    # Gaussian Naive Bayes
-    naive_bayes_classifier = get_gaussian_naive_bayes(spam_dataset_train.get_features,
-                                                           spam_dataset_train.get_labels,
-                                                           spam_class_probs)
-
-    y_pred = naive_bayes_classifier.predict(spam_dataset_valid.get_features)
-    y_true = spam_dataset_valid.get_labels
-
-    score_result = naive_bayes_classifier.score(spam_dataset_valid.get_features,
-                                                spam_dataset_valid.get_labels)
-    f1_score_result = f1_score(y_true, y_pred, average='weighted')
-
-    results_gaussian_naive_bayes.append(['gaussian', score_result, f1_score_result])
-
-    # Multinomial Naive Bayes
-
-    for i, mnb_dataset in enumerate(multinomial_naive_bayes_datasets):
-
-        if i == 0:
-            naive_bayes_classifier = get_multinomial_naive_bayes(mnb_dataset[1].train.get_features, mnb_dataset[1].train.get_labels,
-                                                                 True, spam_class_probs)
-        else:
-            naive_bayes_classifier = get_multinomial_naive_bayes(mnb_dataset[1].train.get_features, mnb_dataset[1].train.get_labels)
-
-        y_pred = naive_bayes_classifier.predict(mnb_dataset[1].valid.get_features)
-        y_true = mnb_dataset[1].valid.get_labels
-
-        score_result = naive_bayes_classifier.score(mnb_dataset[1].valid.get_features,
-                                                    mnb_dataset[1].valid.get_labels)
-        f1_score_result = f1_score(y_true, y_pred, average='weighted')
-
-        if i == 0:
-            results_multinomial_naive_bayes.append(['multinomial', score_result, f1_score_result])
-        else:
-            results_multinomial_naive_bayes.append(['multinomial_' + mnb_dataset[0], score_result, f1_score_result])
-
-    results_naive_bayes = results_multinomial_naive_bayes.copy()
-    results_naive_bayes.append(results_gaussian_naive_bayes[0])
-
-    print(results_tree)
-    print(results_knn)
-    print(results_naive_bayes)
-
-
-    # Plot results
-    results_knn_uniform = list()
-    results_knn_distance = list()
-
-    for result in results_knn:
-        if result[0].split(";weights=")[1] == "uniform":
-            results_knn_uniform.append(result)
-        else:
-            results_knn_distance.append(result)
-
-
-    plot_hyper_parameters_comparison(tree_params_array, results_tree, "Decision Tree", "max_depth",
-                                     os.environ["VIRTUAL_ENV"] + "/data/csv/spam/decision_tree_spam.png")
-
-    plot_hyper_parameters_comparison(knn_params_array, results_knn_uniform, "KNN with different weights", "n_neighbors",
-                                     os.environ["VIRTUAL_ENV"] + "/data/csv/spam/knn_spam.png", results_knn_distance)
-
-    plot_bar_hyper_parameters_comparison(results_naive_bayes, "Naive Bayes with different params",
-                                         "parameters",
-                                         os.environ["VIRTUAL_ENV"] + "/data/csv/spam/naive_bayes_spam.png")
+    #
+    #
+    # # Plot results
+    # results_knn_uniform = list()
+    # results_knn_distance = list()
+    #
+    # for result in results_knn:
+    #     if result[0].split(";weights=")[1] == "uniform":
+    #         results_knn_uniform.append(result)
+    #     else:
+    #         results_knn_distance.append(result)
+    #
+    #
+    # plot_hyper_parameters_comparison(tree_params_array, results_tree, "Decision Tree", "max_depth",
+    #                                  os.environ["VIRTUAL_ENV"] + "/data/csv/spam/decision_tree_spam.png")
+    #
+    # plot_hyper_parameters_comparison(knn_params_array, results_knn_uniform, "KNN with different weights", "n_neighbors",
+    #                                  os.environ["VIRTUAL_ENV"] + "/data/csv/spam/knn_spam.png", results_knn_distance)
+    #
+    # plot_bar_hyper_parameters_comparison(results_naive_bayes, "Naive Bayes with different params",
+    #                                      "parameters",
+    #                                      os.environ["VIRTUAL_ENV"] + "/data/csv/spam/naive_bayes_spam.png")
 
 if __name__ == '__main__':
     main()
