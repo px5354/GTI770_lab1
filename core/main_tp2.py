@@ -43,7 +43,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import f1_score
 
 
-def plot_hyper_parameters_comparison(params_array, results, title, xlabel_name, filename):
+def plot_hyper_parameters_comparison(params_array, results, title, xlabel_name, filename, results2 = None):
 
     x = params_array
     y_score = list()
@@ -64,12 +64,62 @@ def plot_hyper_parameters_comparison(params_array, results, title, xlabel_name, 
     # Plot
     ax.margins(0.05)
 
-    ax.plot(x, y_score, marker='o', linestyle='-', ms=10, label="score")
-    ax.plot(x, y_f1_score, marker='o', linestyle='-', ms=10, label="f1_score")
+    if results2 is None :
+        ax.plot(x, y_score, marker='o', linestyle='-', ms=10, label="score")
+        ax.plot(x, y_f1_score, marker='o', linestyle='-', ms=10, label="f1_score")
+    else:
+        y2_score = list()
+        y2_f1_score = list()
+        result_name = results[0][0].split(";weights=")[1]
+        result2_name = results2[0][0].split(";weights=")[1]
+        for result in results2:
+            y2_score.append(result[1])
+            y2_f1_score.append(result[2])
+        ax.plot(x, y_score, marker='o', linestyle='-', ms=10, label="score_" + result_name)
+        ax.plot(x, y_f1_score, marker='o', linestyle='-', ms=10, label="f1_score_" + result_name)
+        ax.plot(x, y2_score, marker='o', linestyle='-', ms=10, label="score_" + result2_name)
+        ax.plot(x, y2_f1_score, marker='o', linestyle='-', ms=10, label="f1_score_" + result2_name)
+
 
     ax.legend()
     plt.savefig(filename)
 
+def plot_bar_hyper_parameters_comparison(results, title, xlabel_name, filename):
+
+    x = list()
+    y_score = list()
+    y_f1_score = list()
+    for result in results:
+        x.append(result[0])
+        y_score.append(result[1])
+        y_f1_score.append(result[2])
+
+    # Set graphics properties
+    fig, ax = plt.subplots(figsize=(10, 6))
+    index = np.arange(len(results))
+    bar_width = 0.35
+    opacity = 0.8
+
+    rects1 = plt.bar(index, y_score, bar_width,
+                     alpha=opacity,
+                     color='b',
+                     label='score')
+
+    rects2 = plt.bar(index + bar_width, y_f1_score, bar_width,
+                     alpha=opacity,
+                     color='g',
+                     label='f1_score')
+
+    plt.xlabel(xlabel_name)
+    plt.ylabel('score')
+    plt.title(title)
+    plt.xticks(index + bar_width, x)
+    plt.tick_params(axis='x', which='major', labelsize=6)
+    plt.tick_params(axis='both', which='minor', labelsize=5)
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig(filename)
 
 # def extract_smaller_size_of_dataset(dataset, ratio):
 #     """ get smaller size of the dataset according to a ratio
@@ -253,7 +303,6 @@ def main():
             score_result = trained_knn_classifier.score(spam_dataset_valid.get_features,
                                                         spam_dataset_valid.get_labels)
             f1_score_result = f1_score(y_true, y_pred, average='weighted')
-
             results_knn.append([params, score_result, f1_score_result])
 
     # Gaussian Naive Bayes
@@ -268,7 +317,7 @@ def main():
                                                 spam_dataset_valid.get_labels)
     f1_score_result = f1_score(y_true, y_pred, average='weighted')
 
-    results_gaussian_naive_bayes.append(['[0.4003, 0.5997]', score_result, f1_score_result])
+    results_gaussian_naive_bayes.append(['gaussian', score_result, f1_score_result])
 
     # Multinomial Naive Bayes
 
@@ -288,22 +337,36 @@ def main():
         f1_score_result = f1_score(y_true, y_pred, average='weighted')
 
         if i == 0:
-            results_multinomial_naive_bayes.append([mnb_dataset[0] + ';class_probs=[0.4003, 0.5997]', score_result, f1_score_result])
+            results_multinomial_naive_bayes.append(['multinomial', score_result, f1_score_result])
         else:
-            results_multinomial_naive_bayes.append([mnb_dataset[0], score_result, f1_score_result])
+            results_multinomial_naive_bayes.append(['multinomial_' + mnb_dataset[0], score_result, f1_score_result])
+
+    results_naive_bayes = results_multinomial_naive_bayes.copy()
+    results_naive_bayes.append(results_gaussian_naive_bayes[0])
 
     print(results_tree)
-    print(tree_params_array)
     print(results_knn)
-    print(knn_params_array)
-    # print(results_gaussian_naive_bayes)
-    # print(results_multinomial_naive_bayes)
+    print(results_naive_bayes)
+
+    results_knn_uniform = list()
+    results_knn_distance = list()
+
+    for result in results_knn:
+        if result[0].split(";weights=")[1] == "uniform":
+            results_knn_uniform.append(result)
+        else:
+            results_knn_distance.append(result)
+
 
     plot_hyper_parameters_comparison(tree_params_array, results_tree, "Decision Tree", "max_depth",
                                      os.environ["VIRTUAL_ENV"] + "/data/csv/spam/decision_tree_spam.png")
 
-    plot_hyper_parameters_comparison(knn_params_array, results_knn, "KNN", "n_neighbors",
-                                     os.environ["VIRTUAL_ENV"] + "/data/csv/spam/knn_spam.png")
+    plot_hyper_parameters_comparison(knn_params_array, results_knn_uniform, "KNN with different weights", "n_neighbors",
+                                     os.environ["VIRTUAL_ENV"] + "/data/csv/spam/knn_spam.png", results_knn_distance)
+
+    plot_bar_hyper_parameters_comparison(results_naive_bayes, "Naive Bayes with different params",
+                                         "parameters",
+                                         os.environ["VIRTUAL_ENV"] + "/data/csv/spam/naive_bayes_spam.png")
 
 if __name__ == '__main__':
     main()
