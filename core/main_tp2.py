@@ -33,6 +33,7 @@ from classifiers.galaxy_classifiers.gaussian_naive_bayes_classifier import Gauss
 from classifiers.galaxy_classifiers.multinomial_naive_bayes_classifier import MultinomialNaiveBayesClassifier
 from commons.helpers.dataset.context import Context
 from commons.helpers.dataset.strategies.spam_dataset.feature_strategy import SpamDataSetFeatureStrategy
+from commons.helpers.dataset.strategies.galaxy_dataset.feature_strategy import GalaxyDataSetFeatureStrategy
 from commons.preprocessors.discretization.context import DiscretizerContext
 from commons.preprocessors.discretization.strategies.unsupervised.unsupervised_discretization_strategy import \
     UnsupervisedDiscretizationStrategy
@@ -213,19 +214,30 @@ def main():
     # The desired validation size.
     validation_size = 0.2
 
+    # Load data
     spam_feature_dataset_strategy = SpamDataSetFeatureStrategy()
-    context = Context(spam_feature_dataset_strategy)
+    galaxy_feature_dataset_strategy = GalaxyDataSetFeatureStrategy()
+
 
     spam_feature_csv_file = os.environ["VIRTUAL_ENV"] + "/data/csv/spam/spam.csv"
+    galaxy_feature_csv_file = os.environ["VIRTUAL_ENV"] + "/data/csv/galaxy/galaxy_feature_vectors.csv"
 
-    spam_dataset = context.load_dataset(csv_file=spam_feature_csv_file, one_hot=False, validation_size=np.float32(validation_size))
-
+    context = Context(spam_feature_dataset_strategy)
+    spam_dataset = context.load_dataset(csv_file=spam_feature_csv_file, one_hot=False,
+                                        validation_size=np.float32(validation_size))
     spam_dataset_train = spam_dataset.train
     spam_dataset_valid = spam_dataset.valid
 
-    noises = [0, 0.05, 0.10, 0.20]
-    proportions = [0.20, 0.5, 0.75, 1]
-    state = 1
+
+    context = Context(galaxy_feature_dataset_strategy)
+    galaxy_dataset = context.load_dataset(csv_file=galaxy_feature_csv_file, one_hot=False,
+                                        validation_size=np.float32(validation_size))
+    galaxy_dataset_train = galaxy_dataset.train
+    galaxy_dataset_valid = galaxy_dataset.valid
+
+    # noises = [0, 0.05, 0.10, 0.20]
+    # proportions = [0.20, 0.5, 0.75, 1]
+    # state = 1
 
     # for proportion in proportions:
     #     for noise in noises:
@@ -313,7 +325,7 @@ def main():
     y_pred = naive_bayes_classifier.predict(spam_dataset_valid.get_features)
     y_true = spam_dataset_valid.get_labels
 
-    score_result = trained_knn_classifier.score(spam_dataset_valid.get_features,
+    score_result = naive_bayes_classifier.score(spam_dataset_valid.get_features,
                                                 spam_dataset_valid.get_labels)
     f1_score_result = f1_score(y_true, y_pred, average='weighted')
 
@@ -348,6 +360,8 @@ def main():
     print(results_knn)
     print(results_naive_bayes)
 
+
+    # Plot results
     results_knn_uniform = list()
     results_knn_distance = list()
 
