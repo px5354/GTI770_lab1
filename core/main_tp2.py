@@ -38,8 +38,38 @@ from commons.preprocessors.discretization.strategies.unsupervised.unsupervised_d
     UnsupervisedDiscretizationStrategy
 from commons.preprocessors.discretization.strategies.supervised.supervised_discretization_strategy import \
     SupervisedDiscretizationStrategy
+import matplotlib.pyplot as plt
 
 from sklearn.metrics import f1_score
+
+
+def plot_hyper_parameters_comparison(params_array, results, title, xlabel_name, filename):
+
+    x = params_array
+    y_score = list()
+    y_f1_score = list()
+    for result in results:
+        y_score.append(result[1])
+        y_f1_score.append(result[2])
+
+    # Set graphics properties
+    fig = plt.figure(figsize=(6, 6))
+    ax = fig.add_subplot(111)
+    ax.set_title(title, fontsize=14)
+    plt.xticks(x, x)
+    ax.set_xlabel(xlabel_name, fontsize=12)
+    ax.set_ylabel("score", fontsize=12)
+    ax.grid(True, linestyle='-', color='0.75')
+
+    # Plot
+    ax.margins(0.05)
+
+    ax.plot(x, y_score, marker='o', linestyle='-', ms=10, label="score")
+    ax.plot(x, y_f1_score, marker='o', linestyle='-', ms=10, label="f1_score")
+
+    ax.legend()
+    plt.savefig(filename)
+
 
 # def extract_smaller_size_of_dataset(dataset, ratio):
 #     """ get smaller size of the dataset according to a ratio
@@ -263,9 +293,17 @@ def main():
             results_multinomial_naive_bayes.append([mnb_dataset[0], score_result, f1_score_result])
 
     print(results_tree)
+    print(tree_params_array)
     print(results_knn)
-    print(results_gaussian_naive_bayes)
-    print(results_multinomial_naive_bayes)
+    print(knn_params_array)
+    # print(results_gaussian_naive_bayes)
+    # print(results_multinomial_naive_bayes)
+
+    plot_hyper_parameters_comparison(tree_params_array, results_tree, "Decision Tree", "max_depth",
+                                     os.environ["VIRTUAL_ENV"] + "/data/csv/spam/decision_tree_spam.png")
+
+    plot_hyper_parameters_comparison(knn_params_array, results_knn, "KNN", "n_neighbors",
+                                     os.environ["VIRTUAL_ENV"] + "/data/csv/spam/knn_spam.png")
 
 if __name__ == '__main__':
     main()
