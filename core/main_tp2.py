@@ -200,14 +200,15 @@ def get_multinomial_naive_bayes(X_train, y_train, fit_prior=False, class_prior=N
 
     return mnb
 
-def train_set_with_size(trainSet, proportion, state):
+def train_set_with_size(dataSet, proportion, state):
 
-    features = trainSet.get_features
-    labels = trainSet.get_labels
+    if (proportion == 1):
+        features = dataSet.valid.get_features
+        labels = dataSet.valid.get_labels
+    else:
+        _, features, _, labels = train_test_split(dataSet.valid.get_features, dataSet.valid.get_labels, test_size=proportion, random_state=state)
 
-    _, train_features, _, train_labels = train_test_split(features, labels, test_size=proportion, random_state =state)
-
-    return train_features, train_labels
+    return features, labels
 
 def split_data_for_k_fold(X, y, n_splits=10):
     kf = KFold(n_splits=n_splits)
@@ -322,6 +323,13 @@ def get_naive_bayes_results(multinomial_naive_bayes_datasets, class_prob, is_k_f
 
 def main():
 
+    # GALAXY
+    # context = Context(galaxy_feature_dataset_strategy)
+    # galaxy_dataset = context.load_dataset(csv_file=galaxy_feature_csv_file, one_hot=False,
+    #                                     validation_size=np.float32(validation_size))
+    # galaxy_dataset_train = galaxy_dataset.train
+    # galaxy_dataset_valid = galaxy_dataset.valid
+
     # The desired validation size.
     validation_size = 0.2
 
@@ -347,7 +355,7 @@ def main():
     unsupervised_discretised_dataset = preprocessor_context.discretize(data_set=spam_dataset,
                                                                        validation_size=np.float32(validation_size))
 
-    multinomial_datasets = [["spam_dataset", spam_dataset],
+    spam_multinomial_datasets = [["spam_dataset", spam_dataset],
                                         ["supervised_discretised_dataset", supervised_discretised_dataset],
                                         ["unsupervised_discretised_dataset", unsupervised_discretised_dataset]]
 
@@ -367,7 +375,7 @@ def main():
     # results
     tree_results = get_tree_results(tree_params, spam_X_train, spam_y_train, spam_X_test, spam_y_test)
     knn_results = get_knn_results(neighbors_params, weights_params, spam_X_train, spam_y_train, spam_X_test, spam_y_test)
-    naive_bayes_results = get_naive_bayes_results(multinomial_datasets, spam_class_prob)
+    naive_bayes_results = get_naive_bayes_results(spam_multinomial_datasets, spam_class_prob)
 
     # Plot results
     results_knn_uniform = list()
@@ -401,7 +409,7 @@ def main():
     preprocessor_context.set_strategy(UnsupervisedDiscretizationStrategy())
     unsupervised_discretised_dataset = preprocessor_context.discretize(data_set=spam_dataset, validation_size=np.float32(cross_validation_size))
 
-    multinomial_datasets = [["spam_dataset", cross_spam_dataset],["supervised_discretised_dataset", supervised_discretised_dataset], ["unsupervised_discretised_dataset", unsupervised_discretised_dataset]]
+    spam_cross_multinomial_datasets = [["spam_dataset", cross_spam_dataset],["supervised_discretised_dataset", supervised_discretised_dataset], ["unsupervised_discretised_dataset", unsupervised_discretised_dataset]]
 
     # Params
     cross_tree_params = [5]
@@ -411,42 +419,42 @@ def main():
     # Results
     cross_tree_results = get_tree_results(cross_tree_params, spam_cross_X_train, spam_cross_y_train, spam_cross_X_test, spam_cross_y_test)
     cross_knn_results = get_knn_results(cross_neighbors_params, cross_weights_params, spam_cross_X_train, spam_cross_y_train, spam_cross_X_test, spam_cross_y_test)
-    cross_naive_bayes_results = get_naive_bayes_results(multinomial_datasets, spam_class_prob, True)
+    cross_naive_bayes_results = get_naive_bayes_results(spam_cross_multinomial_datasets, spam_class_prob, True)
 
+    # -------------------- PART 3 --------------------
+    noises = [0, 0.05, 0.10, 0.20]
+    proportions = [0.25, 0.5, 0.75, 1]
+    state = 1
 
+    for proportion in proportions:
+        for noise in noises:
+            print("noise: " + str(noise))
+            print("proportion: " + str(proportion))
 
-    # context = Context(galaxy_feature_dataset_strategy)
-    # galaxy_dataset = context.load_dataset(csv_file=galaxy_feature_csv_file, one_hot=False,
-    #                                     validation_size=np.float32(validation_size))
-    # galaxy_dataset_train = galaxy_dataset.train
-    # galaxy_dataset_valid = galaxy_dataset.valid
+            features, labels = train_set_with_size(cross_spam_dataset, proportion, state)
+            # train_features = apply_noise_to_features(train_features, noise)
 
-    # noises = [0, 0.05, 0.10, 0.20]
-    # proportions = [0.20, 0.5, 0.75, 1]
-    # state = 1
+            X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=validation_size, random_state=state)
 
-    # for proportion in proportions:
-    #     for noise in noises:
-    #         print("noise: " + str(noise))
-    #         print("proportion: " + str(proportion))
-    #
-    #         train_features, train_labels = train_set_with_size(spam_dataset_train, proportion, state)
-    #         train_features = apply_noise_to_features(train_features, noise)
-    #
-    #         valid_features = apply_noise_to_features(spam_dataset_valid.get_features, noise)
-    #         valid_labels = spam_dataset_valid.get_labels
-    #
-    #         get_decision_tree_score(train_features, valid_features, train_labels, valid_labels, max_depth=None)
-    #         get_decision_tree_score(train_features, valid_features, train_labels, valid_labels, max_depth=3)
-    #         get_decision_tree_score(train_features, valid_features, train_labels, valid_labels, max_depth=5)
-    #         get_decision_tree_score(train_features, valid_features, train_labels, valid_labels, max_depth=10)
-    #         print("___________________________________________________________")
-    #
-    #         state = state + 1
+            X_train_with_noise = apply_noise_to_features(X_train, noise)
 
+            noise_tree_results = get_tree_results(cross_tree_params, X_train_with_noise, y_train, X_test, y_test)
+            noise_knn_results = get_knn_results(cross_neighbors_params, cross_weights_params, X_train_with_noise, y_train, X_test, y_test)
 
-    #
-    #
+            naive_bayes_classifier = get_multinomial_naive_bayes(X_train, y_train)
+
+            y_pred = naive_bayes_classifier.predict(X_test)
+            y_true = y_test
+
+            score_result = naive_bayes_classifier.score(X_test, y_test)
+            f1_score_result = f1_score(y_true, y_pred, average='weighted')
+
+            noise_naive_bayes_results = ["multinomial_supervised_discretised_dataset", score_result, f1_score_result]
+            print("NOISE TREE: ", noise_tree_results)
+            print("NOISE KNN: ", noise_knn_results)
+            print("NOISE NAIVE BAYES: ", noise_naive_bayes_results)
+            print("___________________________________________________________")
+
 
 if __name__ == '__main__':
     main()
