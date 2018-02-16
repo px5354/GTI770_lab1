@@ -365,11 +365,30 @@ def main():
     weights_params = ['uniform', 'distance']
 
     # results
-    get_tree_results(tree_params, spam_X_train, spam_y_train, spam_X_test, spam_y_test)
-    get_knn_results(neighbors_params, weights_params, spam_X_train, spam_y_train, spam_X_test, spam_y_test)
-    get_naive_bayes_results(multinomial_datasets, spam_class_prob)
+    tree_results = get_tree_results(tree_params, spam_X_train, spam_y_train, spam_X_test, spam_y_test)
+    knn_results = get_knn_results(neighbors_params, weights_params, spam_X_train, spam_y_train, spam_X_test, spam_y_test)
+    naive_bayes_results = get_naive_bayes_results(multinomial_datasets, spam_class_prob)
+
+    # Plot results
+    results_knn_uniform = list()
+    results_knn_distance = list()
+
+    for result in knn_results:
+        if result[0].split(";weights=")[1] == "uniform":
+            results_knn_uniform.append(result)
+        else:
+            results_knn_distance.append(result)
 
 
+    plot_hyper_parameters_comparison(tree_params, tree_results, "Decision Tree", "max_depth",
+                                     os.environ["VIRTUAL_ENV"] + "/data/csv/spam/decision_tree_spam.png")
+
+    plot_hyper_parameters_comparison(neighbors_params, results_knn_uniform, "KNN with different weights", "n_neighbors",
+                                     os.environ["VIRTUAL_ENV"] + "/data/csv/spam/knn_spam.png", results_knn_distance)
+
+    plot_bar_hyper_parameters_comparison(naive_bayes_results, "Naive Bayes with different params",
+                                         "parameters",
+                                         os.environ["VIRTUAL_ENV"] + "/data/csv/spam/naive_bayes_spam.png")
 
     # -------------------- CROSS VALIDATION --------------------
     cross_validation_size = 1
@@ -385,14 +404,14 @@ def main():
     multinomial_datasets = [["spam_dataset", cross_spam_dataset],["supervised_discretised_dataset", supervised_discretised_dataset], ["unsupervised_discretised_dataset", unsupervised_discretised_dataset]]
 
     # Params
-    cross_tree_params = [10]
+    cross_tree_params = [5]
     cross_neighbors_params = [10]
     cross_weights_params = ['distance']
 
     # Results
-    get_tree_results(cross_tree_params, spam_cross_X_train, spam_cross_y_train, spam_cross_X_test, spam_cross_y_test)
-    get_knn_results(cross_neighbors_params, cross_weights_params, spam_cross_X_train, spam_cross_y_train, spam_cross_X_test, spam_cross_y_test)
-    get_naive_bayes_results(multinomial_datasets, spam_class_prob, True)
+    cross_tree_results = get_tree_results(cross_tree_params, spam_cross_X_train, spam_cross_y_train, spam_cross_X_test, spam_cross_y_test)
+    cross_knn_results = get_knn_results(cross_neighbors_params, cross_weights_params, spam_cross_X_train, spam_cross_y_train, spam_cross_X_test, spam_cross_y_test)
+    cross_naive_bayes_results = get_naive_bayes_results(multinomial_datasets, spam_class_prob, True)
 
 
 
@@ -428,26 +447,6 @@ def main():
 
     #
     #
-    # # Plot results
-    # results_knn_uniform = list()
-    # results_knn_distance = list()
-    #
-    # for result in results_knn:
-    #     if result[0].split(";weights=")[1] == "uniform":
-    #         results_knn_uniform.append(result)
-    #     else:
-    #         results_knn_distance.append(result)
-    #
-    #
-    # plot_hyper_parameters_comparison(tree_params_array, results_tree, "Decision Tree", "max_depth",
-    #                                  os.environ["VIRTUAL_ENV"] + "/data/csv/spam/decision_tree_spam.png")
-    #
-    # plot_hyper_parameters_comparison(knn_params_array, results_knn_uniform, "KNN with different weights", "n_neighbors",
-    #                                  os.environ["VIRTUAL_ENV"] + "/data/csv/spam/knn_spam.png", results_knn_distance)
-    #
-    # plot_bar_hyper_parameters_comparison(results_naive_bayes, "Naive Bayes with different params",
-    #                                      "parameters",
-    #                                      os.environ["VIRTUAL_ENV"] + "/data/csv/spam/naive_bayes_spam.png")
 
 if __name__ == '__main__':
     main()
