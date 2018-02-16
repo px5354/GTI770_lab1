@@ -347,28 +347,53 @@ def main():
     unsupervised_discretised_dataset = preprocessor_context.discretize(data_set=spam_dataset,
                                                                        validation_size=np.float32(validation_size))
 
-    cross_spam_dataset = context.load_dataset(csv_file=spam_feature_csv_file, one_hot=False,
-                                        validation_size=np.float32(1)).valid
-
     multinomial_datasets = [["spam_dataset", spam_dataset],
                                         ["supervised_discretised_dataset", supervised_discretised_dataset],
                                         ["unsupervised_discretised_dataset", unsupervised_discretised_dataset]]
-    # normal validation
+
+
+    # -------------------- NORMAL VALIDATION --------------------
     spam_X_train = spam_dataset.train.get_features
     spam_y_train = spam_dataset.train.get_labels
     spam_X_test = spam_dataset.valid.get_features
     spam_y_test = spam_dataset.valid.get_labels
     spam_class_prob = [0.4003, 0.5997]
 
+    # params
     tree_params = [0, 3, 5, 10]
     neighbors_params = [3, 5, 10]
     weights_params = ['uniform', 'distance']
 
+    # results
+    get_tree_results(tree_params, spam_X_train, spam_y_train, spam_X_test, spam_y_test)
+    get_knn_results(neighbors_params, weights_params, spam_X_train, spam_y_train, spam_X_test, spam_y_test)
+    get_naive_bayes_results(multinomial_datasets, spam_class_prob)
 
-    # spam_cross_X_train = cross_spam_dataset.valid.get_features
-    # spam_cross_y_train = cross_spam_dataset.train.get_labels
-    # spam_cross_X_test = cross_spam_dataset.valid.get_features
-    # spam_cross_y_test = cross_spam_dataset.valid.get_labels
+
+
+    # -------------------- CROSS VALIDATION --------------------
+    cross_validation_size = 1
+    cross_spam_dataset = context.load_dataset(csv_file=spam_feature_csv_file, one_hot=False, validation_size=np.float32(cross_validation_size))
+    spam_cross_X_train, spam_cross_y_train, spam_cross_X_test, spam_cross_y_test = split_data_for_k_fold(cross_spam_dataset.valid.get_features, cross_spam_dataset.valid.get_labels)
+
+    preprocessor_context = DiscretizerContext(SupervisedDiscretizationStrategy())
+    supervised_discretised_dataset = preprocessor_context.discretize(data_set=spam_dataset, validation_size=np.float32(cross_validation_size))
+
+    preprocessor_context.set_strategy(UnsupervisedDiscretizationStrategy())
+    unsupervised_discretised_dataset = preprocessor_context.discretize(data_set=spam_dataset, validation_size=np.float32(cross_validation_size))
+
+    multinomial_datasets = [["spam_dataset", cross_spam_dataset],["supervised_discretised_dataset", supervised_discretised_dataset], ["unsupervised_discretised_dataset", unsupervised_discretised_dataset]]
+
+    # Params
+    cross_tree_params = [10]
+    cross_neighbors_params = [10]
+    cross_weights_params = ['distance']
+
+    # Results
+    get_tree_results(cross_tree_params, spam_cross_X_train, spam_cross_y_train, spam_cross_X_test, spam_cross_y_test)
+    get_knn_results(cross_neighbors_params, cross_weights_params, spam_cross_X_train, spam_cross_y_train, spam_cross_X_test, spam_cross_y_test)
+    get_naive_bayes_results(multinomial_datasets, spam_class_prob, True)
+
 
 
     # context = Context(galaxy_feature_dataset_strategy)
@@ -400,14 +425,6 @@ def main():
     #
     #         state = state + 1
 
-    # decision tree
-    get_tree_results(tree_params, spam_X_train, spam_y_train, spam_X_test, spam_y_test)
-
-    # knn
-    get_knn_results(neighbors_params, weights_params, spam_X_train, spam_y_train, spam_X_test, spam_y_test)
-
-    # Naive Bayes
-    get_naive_bayes_results(multinomial_datasets, spam_class_prob)
 
     #
     #
