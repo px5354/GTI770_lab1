@@ -196,6 +196,7 @@ def get_gaussian_naive_bayes(X_train, y_train, priors=None):
 def get_multinomial_naive_bayes(X_train, y_train, fit_prior=False, class_prior=None):
 
     mnb = MultinomialNaiveBayesClassifier(fit_prior, class_prior)
+    print(X_train)
     mnb.train(X_train, y_train)
 
     return mnb
@@ -289,33 +290,33 @@ def get_naive_bayes_results(multinomial_naive_bayes_datasets, class_prob, is_k_f
 
     # Multinomial Naive Bayes
 
-    for i, mnb_dataset in enumerate(multinomial_naive_bayes_datasets):
-        dataset = mnb_dataset[1]
-
-        if is_k_fold:
-            X_train, y_train, X_test, y_test = split_data_for_k_fold(dataset.valid.get_features,
-                                                                     dataset.valid.get_labels)
-        else:
-            X_train = dataset.train.get_features
-            y_train = dataset.train.get_labels
-            X_test = dataset.valid.get_features
-            y_test = dataset.valid.get_labels
-
-        if i == 0:
-            naive_bayes_classifier = get_multinomial_naive_bayes(X_train, y_train, True, class_prob)
-        else:
-            naive_bayes_classifier = get_multinomial_naive_bayes(X_train, y_train)
-
-        y_pred = naive_bayes_classifier.predict(X_test)
-        y_true = y_test
-
-        score_result = naive_bayes_classifier.score(X_test, y_test)
-        f1_score_result = f1_score(y_true, y_pred, average='weighted')
-
-        if i == 0:
-            naive_bayes_results.append(['multinomial', score_result, f1_score_result])
-        else:
-            naive_bayes_results.append(['multinomial_' + mnb_dataset[0], score_result, f1_score_result])
+    # for i, mnb_dataset in enumerate(multinomial_naive_bayes_datasets):
+    #     dataset = mnb_dataset[1]
+    #
+    #     if is_k_fold:
+    #         X_train, y_train, X_test, y_test = split_data_for_k_fold(dataset.valid.get_features,
+    #                                                                  dataset.valid.get_labels)
+    #     else:
+    #         X_train = dataset.train.get_features
+    #         y_train = dataset.train.get_labels
+    #         X_test = dataset.valid.get_features
+    #         y_test = dataset.valid.get_labels
+    #
+    #     if i == 0:
+    #         naive_bayes_classifier = get_multinomial_naive_bayes(X_train, y_train, True, class_prob)
+    #     else:
+    #         naive_bayes_classifier = get_multinomial_naive_bayes(X_train, y_train)
+    #
+    #     y_pred = naive_bayes_classifier.predict(X_test)
+    #     y_true = y_test
+    #
+    #     score_result = naive_bayes_classifier.score(X_test, y_test)
+    #     f1_score_result = f1_score(y_true, y_pred, average='weighted')
+    #
+    #     if i == 0:
+    #         naive_bayes_results.append(['multinomial', score_result, f1_score_result])
+    #     else:
+    #         naive_bayes_results.append(['multinomial_' + mnb_dataset[0], score_result, f1_score_result])
 
     naive_bayes_results.append(['gaussian', gaussian_score_result, gaussian_f1_score_result])
     print("NAIVE BAYES: ", naive_bayes_results)
@@ -440,15 +441,19 @@ def main():
             noise_tree_results = get_tree_results(cross_tree_params, X_train_with_noise, y_train, X_test, y_test)
             noise_knn_results = get_knn_results(cross_neighbors_params, cross_weights_params, X_train_with_noise, y_train, X_test, y_test)
 
-            naive_bayes_classifier = get_multinomial_naive_bayes(X_train, y_train)
+            naive_bayes_results = list()
+
+            # Gaussian Naive Bayes
+            naive_bayes_classifier = get_gaussian_naive_bayes(X_train, y_train, spam_class_prob)
 
             y_pred = naive_bayes_classifier.predict(X_test)
             y_true = y_test
 
-            score_result = naive_bayes_classifier.score(X_test, y_test)
-            f1_score_result = f1_score(y_true, y_pred, average='weighted')
+            gaussian_score_result = naive_bayes_classifier.score(X_test, y_test)
+            gaussian_f1_score_result = f1_score(y_true, y_pred, average='weighted')
 
-            noise_naive_bayes_results = ["multinomial_supervised_discretised_dataset", score_result, f1_score_result]
+
+            noise_naive_bayes_results = ["gaussian_naive_bayes", gaussian_score_result, gaussian_f1_score_result]
             print("NOISE TREE: ", noise_tree_results)
             print("NOISE KNN: ", noise_knn_results)
             print("NOISE NAIVE BAYES: ", noise_naive_bayes_results)
