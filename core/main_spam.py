@@ -46,7 +46,17 @@ from sklearn.metrics import f1_score
 
 
 def plot_hyper_parameters_comparison(params_array, results, title, xlabel_name, filename, results2 = None):
+    """ save plot bar of parameters comparison
 
+    Use matplotlib methods to compute a decision tree score
+
+    Args:
+        results: results to compare
+        title: plot title
+        xlabel_name: xlabel name
+        filename: filename
+
+    """
     x = params_array
     y_score = list()
     y_f1_score = list()
@@ -87,6 +97,17 @@ def plot_hyper_parameters_comparison(params_array, results, title, xlabel_name, 
     plt.savefig(filename)
 
 def plot_bar_hyper_parameters_comparison(results, title, xlabel_name, filename):
+    """ save plot bar of parameters comparison
+
+    Use matplotlib methods to compute a decision tree score
+
+    Args:
+        results: results to compare
+        title: plot title
+        xlabel_name: xlabel name
+        filename: filename
+
+    """
 
     x = list()
     y_score = list()
@@ -159,19 +180,17 @@ def apply_noise_to_features(dataset, noise):
     return features_with_noise
 
 def get_decision_tree(X_train, y_train, max_depth=None):
-    """ get the decision tree score
+    """ get the decision tree classifier
 
     Use scikit-learn methods to compute a decision tree score
 
     Args:
         X_train: The training values
-        X_test: The test values
         y_train: Training labels
-        y_test: Test labels
         max_depth: maximum depth for the tree
 
     Returns:
-        The score.
+        The Classifier.
     """
 
     clf = TreeClassifier(max_depth=max_depth)
@@ -180,6 +199,19 @@ def get_decision_tree(X_train, y_train, max_depth=None):
     return clf
 
 def get_knn(X_train, y_train, n_neighbors, weights):
+    """ get the knn classifier
+
+    Use scikit-learn methods to compute a decision tree score
+
+    Args:
+        X_train: The training values
+        y_train: Training labels
+        n_neighbors: number of neighbors
+        weights: weight function
+
+    Returns:
+        The Classifier.
+    """
 
     knn = KNNClassifier(n_neighbors, weights)
     knn.train(X_train, y_train)
@@ -187,6 +219,18 @@ def get_knn(X_train, y_train, n_neighbors, weights):
     return knn
 
 def get_gaussian_naive_bayes(X_train, y_train, priors=None):
+    """ get the gaussian classifier
+
+    Use scikit-learn methods to compute a decision tree score
+
+    Args:
+        X_train: The training values
+        y_train: Training labels
+        priors: Classes probabilities
+
+    Returns:
+        The Classifier.
+    """
 
     gnb = GaussianNaiveBayesClassifier(priors=priors)
     gnb.train(X_train, y_train)
@@ -194,6 +238,19 @@ def get_gaussian_naive_bayes(X_train, y_train, priors=None):
     return gnb
 
 def get_multinomial_naive_bayes(X_train, y_train, fit_prior=False, class_prior=None):
+    """ get the multinomial naive bayes classifier
+
+    Use scikit-learn methods to compute a decision tree score
+
+    Args:
+        X_train: The training values
+        y_train: Training labels
+        fit_prior: Boolean to fit before or not
+        class_priors: Classes probabilities
+
+    Returns:
+        The Classifier.
+    """
 
     mnb = MultinomialNaiveBayesClassifier(fit_prior, class_prior)
     mnb.train(X_train, y_train)
@@ -201,6 +258,17 @@ def get_multinomial_naive_bayes(X_train, y_train, fit_prior=False, class_prior=N
     return mnb
 
 def train_set_with_size(dataSet, proportion, state):
+    """ get dataset with a certain size
+
+    Use scikit-learn methods to get a certain size dataset
+
+    Args:
+        dataSet: dataset to split
+        proportion: the proportion of the new dataset
+        state: the random state for splitting
+    Returns:
+        New splitted dataset.
+    """
 
     if (proportion == 1):
         features = dataSet.valid.get_features
@@ -211,6 +279,17 @@ def train_set_with_size(dataSet, proportion, state):
     return features, labels
 
 def split_data_for_k_fold(X, y, n_splits=10):
+    """ splits data for k fold cross validation
+
+    Use scikit-learn methods to splits data for k fold cross validation
+
+    Args:
+        X: features
+        y: labels
+        n_splits: parameters for k fold cross validation
+    Returns:
+        training data, training labels, valid data, valid labels
+    """
     kf = KFold(n_splits=n_splits)
     kf.get_n_splits(X)
 
@@ -222,6 +301,19 @@ def split_data_for_k_fold(X, y, n_splits=10):
 
 
 def get_tree_results(tree_params, X_train, y_train, X_test, y_test):
+    """ return decision tree results
+
+    compute models accuracy with scikit-learn functions
+
+    Args:
+        tree_params: tree classifier params
+        X_train: train data
+        y_train: train label
+        X_test: valid data
+        y_test: valid label
+    Returns:
+        results
+    """
     # ------------------------ TREE ------------------------
     results_tree = list()
 
@@ -246,6 +338,20 @@ def get_tree_results(tree_params, X_train, y_train, X_test, y_test):
     return results_tree
 
 def get_knn_results(neighbors, weights, X_train, y_train, X_test, y_test):
+    """ return knn results
+
+    compute models accuracy with scikit-learn functions
+
+    Args:
+        neighbors: number of neighbors
+        weights: weight function
+        X_train: train data
+        y_train: train label
+        X_test: valid data
+        y_test: valid label
+    Returns:
+        results
+    """
     # ------------------------ KNN ------------------------
     results_knn = list()
     for neighbor in neighbors:
@@ -265,6 +371,17 @@ def get_knn_results(neighbors, weights, X_train, y_train, X_test, y_test):
     return results_knn
 
 def get_naive_bayes_results(multinomial_naive_bayes_datasets, class_prob, is_k_fold=False):
+    """ return naive bayes results
+
+    compute models accuracy with scikit-learn functions
+
+    Args:
+        multinomial_naive_bayes_datasets: datasets params
+        class_prob: classes probabilities
+        is_k_fold: if we apply k fold
+    Returns:
+        results
+    """
 
     naive_bayes_results = list()
     normal_dataset = multinomial_naive_bayes_datasets[0][1]
