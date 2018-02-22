@@ -377,6 +377,10 @@ def main():
     knn_results = get_knn_results(neighbors_params, weights_params, spam_X_train, spam_y_train, spam_X_test, spam_y_test)
     naive_bayes_results = get_naive_bayes_results(spam_multinomial_datasets, spam_class_prob)
 
+    print("NORMAL TREE: ", tree_results)
+    print("NORMAL KNN: ", knn_results)
+    print("NORMAL NAIVE BAYES: ", naive_bayes_results)
+
     # Plot results
     results_knn_uniform = list()
     results_knn_distance = list()
@@ -412,7 +416,7 @@ def main():
     spam_cross_multinomial_datasets = [["spam_dataset", cross_spam_dataset],["supervised_discretised_dataset", supervised_discretised_dataset], ["unsupervised_discretised_dataset", unsupervised_discretised_dataset]]
 
     # Params
-    cross_tree_params = [5]
+    cross_tree_params = [10]
     cross_neighbors_params = [10]
     cross_weights_params = ['distance']
 
@@ -420,44 +424,46 @@ def main():
     cross_tree_results = get_tree_results(cross_tree_params, spam_cross_X_train, spam_cross_y_train, spam_cross_X_test, spam_cross_y_test)
     cross_knn_results = get_knn_results(cross_neighbors_params, cross_weights_params, spam_cross_X_train, spam_cross_y_train, spam_cross_X_test, spam_cross_y_test)
     cross_naive_bayes_results = get_naive_bayes_results(spam_cross_multinomial_datasets, spam_class_prob, True)
-
+    print("CROSS TREE: ", cross_tree_results)
+    print("CROSS KNN: ", cross_knn_results)
+    print("CROSS NAIVE BAYES: ", cross_naive_bayes_results)
     # -------------------- PART 3 --------------------
-    noises = [0, 0.05, 0.10, 0.20]
-    proportions = [0.25, 0.5, 0.75, 1]
-    state = 1
-
-    for proportion in proportions:
-        for noise in noises:
-            print("noise: " + str(noise))
-            print("proportion: " + str(proportion))
-
-            features, labels = train_set_with_size(cross_spam_dataset, proportion, state)
-            # train_features = apply_noise_to_features(train_features, noise)
-
-            X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=validation_size, random_state=state)
-
-            X_train_with_noise = apply_noise_to_features(X_train, noise)
-
-            noise_tree_results = get_tree_results(cross_tree_params, X_train_with_noise, y_train, X_test, y_test)
-            noise_knn_results = get_knn_results(cross_neighbors_params, cross_weights_params, X_train_with_noise, y_train, X_test, y_test)
-
-            naive_bayes_results = list()
-
-            # Gaussian Naive Bayes
-            naive_bayes_classifier = get_gaussian_naive_bayes(X_train, y_train, spam_class_prob)
-
-            y_pred = naive_bayes_classifier.predict(X_test)
-            y_true = y_test
-
-            gaussian_score_result = naive_bayes_classifier.score(X_test, y_test)
-            gaussian_f1_score_result = f1_score(y_true, y_pred, average='weighted')
-
-
-            noise_naive_bayes_results = ["gaussian_naive_bayes", gaussian_score_result, gaussian_f1_score_result]
-            print("NOISE TREE: ", noise_tree_results)
-            print("NOISE KNN: ", noise_knn_results)
-            print("NOISE NAIVE BAYES: ", noise_naive_bayes_results)
-            print("___________________________________________________________")
+    # noises = [0, 0.05, 0.10, 0.20]
+    # proportions = [0.25, 0.5, 0.75, 1]
+    # state = 1
+    #
+    # for proportion in proportions:
+    #     for noise in noises:
+    #         print("noise: " + str(noise))
+    #         print("proportion: " + str(proportion))
+    #
+    #         features, labels = train_set_with_size(cross_spam_dataset, proportion, state)
+    #         # train_features = apply_noise_to_features(train_features, noise)
+    #
+    #         X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=validation_size, random_state=state)
+    #
+    #         X_train_with_noise = apply_noise_to_features(X_train, noise)
+    #
+    #         noise_tree_results = get_tree_results(cross_tree_params, X_train_with_noise, y_train, X_test, y_test)
+    #         noise_knn_results = get_knn_results(cross_neighbors_params, cross_weights_params, X_train_with_noise, y_train, X_test, y_test)
+    #
+    #         naive_bayes_results = list()
+    #
+    #         # Gaussian Naive Bayes
+    #         naive_bayes_classifier = get_gaussian_naive_bayes(X_train, y_train, spam_class_prob)
+    #
+    #         y_pred = naive_bayes_classifier.predict(X_test)
+    #         y_true = y_test
+    #
+    #         gaussian_score_result = naive_bayes_classifier.score(X_test, y_test)
+    #         gaussian_f1_score_result = f1_score(y_true, y_pred, average='weighted')
+    #
+    #
+    #         noise_naive_bayes_results = ["gaussian_naive_bayes", gaussian_score_result, gaussian_f1_score_result]
+    #         print("NOISE TREE: ", noise_tree_results)
+    #         print("NOISE KNN: ", noise_knn_results)
+    #         print("NOISE NAIVE BAYES: ", noise_naive_bayes_results)
+    #         print("___________________________________________________________")
 
 
 if __name__ == '__main__':

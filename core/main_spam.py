@@ -387,7 +387,9 @@ def main():
         else:
             results_knn_distance.append(result)
 
-
+    print("NORMAL TREE: ", tree_results)
+    print("NORMAL KNN: ", knn_results)
+    print("NORMAL NAIVE BAYES: ", naive_bayes_results)
     plot_hyper_parameters_comparison(tree_params, tree_results, "Decision Tree", "max_depth",
                                      os.environ["VIRTUAL_ENV"] + "/data/csv/spam/decision_tree_spam.png")
 
@@ -420,7 +422,9 @@ def main():
     cross_tree_results = get_tree_results(cross_tree_params, spam_cross_X_train, spam_cross_y_train, spam_cross_X_test, spam_cross_y_test)
     cross_knn_results = get_knn_results(cross_neighbors_params, cross_weights_params, spam_cross_X_train, spam_cross_y_train, spam_cross_X_test, spam_cross_y_test)
     cross_naive_bayes_results = get_naive_bayes_results(spam_cross_multinomial_datasets, spam_class_prob, True)
-
+    print("CROSS TREE: ", cross_tree_results)
+    print("CROSS KNN: ", cross_knn_results)
+    print("CROSS NAIVE BAYES: ", cross_naive_bayes_results)
     # -------------------- PART 3 --------------------
     noises = [0, 0.05, 0.10, 0.20]
     proportions = [0.25, 0.5, 0.75, 1]
