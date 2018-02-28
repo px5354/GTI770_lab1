@@ -22,7 +22,7 @@ import os
 
 
 class MLPClassifierTensorBoard(object):
-    def __init__(self, number_of_classes, batch_size, image_size, number_of_channels, number_of_epochs,
+    def __init__(self, number_of_classes, batch_size, image_size, number_of_channels, number_of_steps,
                  dropout__keep_probability, learning_rate, train_path):
         """ Initialize the default parameters of a Multi-Layer Perceptron.
 
@@ -30,7 +30,7 @@ class MLPClassifierTensorBoard(object):
             number_of_classes: The number of class the problem has.
             batch_size: The desired mini-batch size.
             image_size: The number of pixels in one dimension the image has (must be a square image).
-            number_of_epochs: The number of epochs to run the training.
+            number_of_steps: The number of learning steps to run the training.
             learning_rate: The desired learning rate.
             train_path: The path in which the TensorBoard data will be saved.
         """
@@ -39,7 +39,7 @@ class MLPClassifierTensorBoard(object):
         self.batch_size = batch_size
         self.image_size = image_size
         self.number_of_channels = number_of_channels
-        self.number_of_epochs = number_of_epochs
+        self.number_of_steps = number_of_steps
         self.dropout_probability = dropout__keep_probability
         self.learning_rate = learning_rate
         self.train_path = train_path
@@ -49,14 +49,12 @@ class MLPClassifierTensorBoard(object):
         with tf.Session(graph=tf.Graph()) as sess:
 
             with tf.name_scope("input"):
-                X = tf.placeholder("float", [None, 73], name="X")
+                X = tf.placeholder("float", [None, 74], name="X")
                 y_ = tf.placeholder("float", [None, self.number_of_classes], name="y_ground_truth")
                 keep_prob = tf.placeholder(tf.float32, name="dropout_keep_probability")
 
             # Training loop
-            for epoch in range(self.number_of_epochs):
-                total_batch = int(dataset.train.get_num_examples / self.batch_size)
-                for i in range(total_batch):
+            for i in range(self.number_of_steps):
                     if i % 10 == 0:  # Record summaries and test-set accuracy
                         dict = feed_dict(False)
 
@@ -73,7 +71,7 @@ class MLPClassifierTensorBoard(object):
                                                   feed_dict=feed_dict(True),
                                                   options=run_options,
                                                   run_metadata=run_metadata)
-                            train_writer.add_run_metadata(run_metadata, 'epoch-%03d' % epoch + '-step%05d' % i)
+                            train_writer.add_run_metadata(run_metadata, '-step%04d' % i)
                             train_writer.add_summary(summary, i)
                             print('Adding run metadata for', i)
 

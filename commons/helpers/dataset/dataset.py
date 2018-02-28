@@ -76,7 +76,7 @@ class DataSet(object):
             batch_size: the number of element in the batch.
 
         Returns:
-            A tuple containing a list of img_names (i.e. 1000742) and the associated labels.
+            A tuple containing a list of feature vectors and the associated labels.
         """
         start = self._index_in_epoch
         self._index_in_epoch += batch_size
