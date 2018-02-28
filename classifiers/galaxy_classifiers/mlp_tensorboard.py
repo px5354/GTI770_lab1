@@ -22,8 +22,9 @@ import os
 
 
 class MLPClassifierTensorBoard(object):
-    def __init__(self, number_of_classes, batch_size, image_size, number_of_channels, number_of_steps,
-                 dropout__keep_probability, learning_rate, train_path):
+    def __init__(self, number_of_classes, batch_size, number_of_steps,learning_rate, image_size=424, number_of_channels=3,
+                 dropout__keep_probability=0.5, train_path='/tmp'):
+        
         """ Initialize the default parameters of a Multi-Layer Perceptron.
 
          Args:
