@@ -24,7 +24,7 @@ import os
 class MLPClassifierTensorBoard(object):
     def __init__(self, number_of_classes, batch_size, number_of_steps,learning_rate, image_size=424, number_of_channels=3,
                  dropout__keep_probability=0.5, train_path='/tmp'):
-        
+
         """ Initialize the default parameters of a Multi-Layer Perceptron.
 
          Args:
@@ -44,7 +44,6 @@ class MLPClassifierTensorBoard(object):
         self.dropout_probability = dropout__keep_probability
         self.learning_rate = learning_rate
         self.train_path = train_path
-        self.display_step = 1
 
     def train(self, dataset):
         with tf.Session(graph=tf.Graph()) as sess:
