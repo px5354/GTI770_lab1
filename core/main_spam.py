@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
+
 Course :
     GTI770 — Systèmes intelligents et apprentissage machine
 
