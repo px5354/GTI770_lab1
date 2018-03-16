@@ -50,6 +50,7 @@ from commons.preprocessors.discretization.strategies.unsupervised.unsupervised_d
 from commons.preprocessors.discretization.strategies.supervised.supervised_discretization_strategy import \
     SupervisedDiscretizationStrategy
 
+from classifiers.galaxy_classifiers.mlp_tensorboard import MLPClassifierTensorBoard
 
 
 def get_galaxy_dataset(validation_size):
@@ -63,17 +64,34 @@ def get_galaxy_dataset(validation_size):
 
 def main():
 
+    #load graph from console: tensorboard --gdir=/home/ens/AK86280/Documents/GTI770_lab1/project/data
+    #directory: ~/Documents/GTI770_lab1/project$
+    #http://localhost:6006
+
     galaxy_dataset = get_galaxy_dataset(0.0)
-
-    hidden_layer_1 = 200
-    hidden_layer_2 = 200
-    number_of_iterations = 8000
+    train_path = os.environ["VIRTUAL_ENV"] + "/data"
+    batch_size = 100
+    image_size = 74
+    learning_rate = 0.0005
+    dropout_probability = 0.5
+    number_of_steps = 8000
     number_of_classes = 3
+    number_of_channels = 2
+    number_of_hidden_layer = 2
 
+    tb_classifier = MLPClassifierTensorBoard(train_path,
+                                             batch_size,
+                                             image_size,
+                                             learning_rate,
+                                             dropout_probability,
+                                             number_of_steps,
+                                             number_of_classes,
+                                             number_of_channels,
+                                             number_of_hidden_layer)
 
+    tb_classifier.train(galaxy_dataset)
 
     print("YOU ARE IN THE MAIN_TF")
-
 
 if __name__ == '__main__':
     main()
