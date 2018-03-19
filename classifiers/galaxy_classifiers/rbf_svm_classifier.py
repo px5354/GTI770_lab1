@@ -22,10 +22,11 @@ from sklearn.svm import SVC
 
 class SVMClassifier(object):
 
-    def __init__(self, C, gamma):
+    def __init__(self, C, gamma, kernel):
         self.model = SVC()
         self.model.C = C
         self.model.gamma = gamma
+        self.model.kernel = kernel
 
     def standardize(self, X):
         """ Standardize the data.
@@ -42,3 +43,12 @@ class SVMClassifier(object):
         X = ((X - mean) / std)
 
         return X
+
+    def train(self, X, y):
+        self.model.fit(X, y)
+
+    def predict(self, value):
+        return self.model.predict(value)
+
+    def score(self, X_test, y_test):
+        return self.model.score(X_test, y_test)

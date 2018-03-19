@@ -15,6 +15,8 @@ Group :
     GTI770-H18-0X
 """
 
+#https://github.com/tensorflow/tensorflow/blob/master/tensorflow/examples/tutorials/mnist/mnist_with_summaries.py
+
 from __future__ import division, print_function, absolute_import
 
 import tensorflow as tf

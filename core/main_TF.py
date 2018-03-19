@@ -91,7 +91,5 @@ def main():
 
     tb_classifier.train(galaxy_dataset)
 
-    print("YOU ARE IN THE MAIN_TF")
-
 if __name__ == '__main__':
     main()

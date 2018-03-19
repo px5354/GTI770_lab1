@@ -43,3 +43,13 @@ class LinearSVMClassifier(object):
         X = ((X - mean) / std)
 
         return X
+
+    def train(self, X, y):
+        self.model.fit(X, y)
+
+    def predict(self, value):
+        return self.model.predict(value)
+
+    def score(self, X_test, y_test):
+        return self.model.score(X_test, y_test)
+
