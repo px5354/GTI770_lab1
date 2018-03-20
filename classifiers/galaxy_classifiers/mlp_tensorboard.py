@@ -26,7 +26,7 @@ import os
 
 class MLPClassifierTensorBoard(object):
     def __init__(self, train_path, batch_size, image_size, learning_rate, dropout_probability,
-                 number_of_steps, number_of_classes, number_of_channels, number_of_hidden_layer):
+                 number_of_steps, number_of_classes, number_of_channels, number_of_hidden_layer, iteration):
 
         """ Initialize the default parameters of a Multi-Layer Perceptron.
 
@@ -50,6 +50,7 @@ class MLPClassifierTensorBoard(object):
         self.train_path = train_path
         self.display_step = 1
         self.index = 0
+        self.iteration = iteration
 
     # def train_old(self, dataset):
     #     with tf.Session(graph=tf.Graph()) as sess:
@@ -336,7 +337,7 @@ class MLPClassifierTensorBoard(object):
             # Merge all the summaries and write them out to
             # /tmp/tensorflow/mnist/logs/mnist_with_summaries (by default)
             merged = tf.summary.merge_all()
-            train_writer = tf.summary.FileWriter(self.train_path + '/train', sess.graph)
+            train_writer = tf.summary.FileWriter(self.train_path + '/train/iter' + str(self.iteration), sess.graph)
             test_writer = tf.summary.FileWriter(self.train_path + '/test')
             tf.global_variables_initializer().run()
 
@@ -412,7 +413,7 @@ class MLPClassifierTensorBoard(object):
 
             legacy_init_op = tf.group(tf.tables_initializer(), name='legacy_init_op')
 
-            export_dir = self.train_path + "builder"
+            export_dir = self.train_path + "builder" + str(self.iteration)
             builder = tf.saved_model.builder.SavedModelBuilder(export_dir)
             builder.add_meta_graph_and_variables(
                 sess, [tf.saved_model.tag_constants.TRAINING],

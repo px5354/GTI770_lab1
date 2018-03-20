@@ -68,16 +68,21 @@ def main():
     #directory: ~/Documents/GTI770_lab1/project$
     #http://localhost:6006
 
+    #tensorboa --logdir=logs/
+
     galaxy_dataset = get_galaxy_dataset(0.0)
-    train_path = os.environ["VIRTUAL_ENV"] + "/data/"
+    train_path = os.environ["VIRTUAL_ENV"] + "/data/logs/"
     batch_size = 100
     image_size = 74
-    learning_rate = 0.0005
     dropout_probability = 0.5
-    number_of_steps = 4000
     number_of_classes = 3
+
+    # --------------- ITERATION PAR DEFAULT --------------- #
+    number_of_steps = 8000
     number_of_channels = 2
     number_of_hidden_layer = 2
+    learning_rate = 0.0005
+    iteration = 0
 
     tb_classifier = MLPClassifierTensorBoard(train_path,
                                              batch_size,
@@ -87,9 +92,263 @@ def main():
                                              number_of_steps,
                                              number_of_classes,
                                              number_of_channels,
-                                             number_of_hidden_layer)
+                                             number_of_hidden_layer,
+                                             iteration)
 
     tb_classifier.train(galaxy_dataset)
+
+
+    # --------------- ITERATION 1 --------------- #
+    number_of_steps = 2000
+    number_of_channels = 2
+    number_of_hidden_layer = 2
+    learning_rate = 0.0005
+    iteration = 1
+
+    tb_classifier1 = MLPClassifierTensorBoard(train_path,
+                                             batch_size,
+                                             image_size,
+                                             learning_rate,
+                                             dropout_probability,
+                                             number_of_steps,
+                                             number_of_classes,
+                                             number_of_channels,
+                                             number_of_hidden_layer,
+                                             iteration)
+
+    tb_classifier1.train(galaxy_dataset)
+
+
+    # --------------- ITERATION 2 --------------- #
+    number_of_steps = 4000
+    number_of_channels = 2
+    number_of_hidden_layer = 2
+    learning_rate = 0.0005
+    iteration = 2
+
+    tb_classifier2 = MLPClassifierTensorBoard(train_path,
+                                             batch_size,
+                                             image_size,
+                                             learning_rate,
+                                             dropout_probability,
+                                             number_of_steps,
+                                             number_of_classes,
+                                             number_of_channels,
+                                             number_of_hidden_layer,
+                                             iteration)
+
+    tb_classifier2.train(galaxy_dataset)
+
+
+    # --------------- ITERATION 3 --------------- #
+    number_of_steps = 6000
+    number_of_channels = 2
+    number_of_hidden_layer = 2
+    learning_rate = 0.0005
+    iteration = 3
+
+    tb_classifier3 = MLPClassifierTensorBoard(train_path,
+                                             batch_size,
+                                             image_size,
+                                             learning_rate,
+                                             dropout_probability,
+                                             number_of_steps,
+                                             number_of_classes,
+                                             number_of_channels,
+                                             number_of_hidden_layer,
+                                             iteration)
+
+    tb_classifier3.train(galaxy_dataset)
+
+
+    # --------------- ITERATION 4 --------------- #
+    number_of_steps = 8000
+    number_of_channels = 3
+    number_of_hidden_layer = 2
+    learning_rate = 0.0005
+    iteration = 4
+
+    tb_classifier4 = MLPClassifierTensorBoard(train_path,
+                                             batch_size,
+                                             image_size,
+                                             learning_rate,
+                                             dropout_probability,
+                                             number_of_steps,
+                                             number_of_classes,
+                                             number_of_channels,
+                                             number_of_hidden_layer,
+                                             iteration)
+
+    tb_classifier4.train(galaxy_dataset)
+
+
+    # --------------- ITERATION 5 --------------- #
+    number_of_steps = 4000
+    number_of_channels = 5
+    number_of_hidden_layer = 2
+    learning_rate = 0.0005
+    iteration = 5
+
+    tb_classifier5 = MLPClassifierTensorBoard(train_path,
+                                             batch_size,
+                                             image_size,
+                                             learning_rate,
+                                             dropout_probability,
+                                             number_of_steps,
+                                             number_of_classes,
+                                             number_of_channels,
+                                             number_of_hidden_layer,
+                                             iteration)
+
+    tb_classifier5.train(galaxy_dataset)
+
+
+    # --------------- ITERATION 6 --------------- #
+    number_of_steps = 4000
+    number_of_channels = 7
+    number_of_hidden_layer = 2
+    learning_rate = 0.0005
+    iteration = 6
+
+    tb_classifier6 = MLPClassifierTensorBoard(train_path,
+                                             batch_size,
+                                             image_size,
+                                             learning_rate,
+                                             dropout_probability,
+                                             number_of_steps,
+                                             number_of_classes,
+                                             number_of_channels,
+                                             number_of_hidden_layer,
+                                             iteration)
+
+    tb_classifier6.train(galaxy_dataset)
+
+
+    # --------------- ITERATION 7 --------------- #
+    number_of_steps = 8000
+    number_of_channels = 2
+    number_of_hidden_layer = 3
+    learning_rate = 0.0005
+    iteration = 7
+
+    tb_classifier7 = MLPClassifierTensorBoard(train_path,
+                                             batch_size,
+                                             image_size,
+                                             learning_rate,
+                                             dropout_probability,
+                                             number_of_steps,
+                                             number_of_classes,
+                                             number_of_channels,
+                                             number_of_hidden_layer,
+                                             iteration)
+
+    tb_classifier7.train(galaxy_dataset)
+
+
+    # --------------- ITERATION 8 --------------- #
+    number_of_steps = 8000
+    number_of_channels = 2
+    number_of_hidden_layer = 4
+    learning_rate = 0.0005
+    iteration = 8
+
+    tb_classifier8 = MLPClassifierTensorBoard(train_path,
+                                             batch_size,
+                                             image_size,
+                                             learning_rate,
+                                             dropout_probability,
+                                             number_of_steps,
+                                             number_of_classes,
+                                             number_of_channels,
+                                             number_of_hidden_layer,
+                                             iteration)
+
+    tb_classifier8.train(galaxy_dataset)
+
+
+    # --------------- ITERATION 9 --------------- #
+    number_of_steps = 8000
+    number_of_channels = 2
+    number_of_hidden_layer = 5
+    learning_rate = 0.0005
+    iteration = 9
+
+    tb_classifier9 = MLPClassifierTensorBoard(train_path,
+                                             batch_size,
+                                             image_size,
+                                             learning_rate,
+                                             dropout_probability,
+                                             number_of_steps,
+                                             number_of_classes,
+                                             number_of_channels,
+                                             number_of_hidden_layer,
+                                             iteration)
+
+    tb_classifier9.train(galaxy_dataset)
+
+
+    # --------------- ITERATION 10 --------------- #
+    number_of_steps = 8000
+    number_of_channels = 2
+    number_of_hidden_layer = 2
+    learning_rate = 0.00025
+    iteration = 10
+
+    tb_classifier10 = MLPClassifierTensorBoard(train_path,
+                                             batch_size,
+                                             image_size,
+                                             learning_rate,
+                                             dropout_probability,
+                                             number_of_steps,
+                                             number_of_classes,
+                                             number_of_channels,
+                                             number_of_hidden_layer,
+                                             iteration)
+
+    tb_classifier10.train(galaxy_dataset)
+
+
+    # --------------- ITERATION 11 --------------- #
+    number_of_steps = 8000
+    number_of_channels = 2
+    number_of_hidden_layer = 2
+    learning_rate = 0.0010
+    iteration = 11
+
+    tb_classifier11 = MLPClassifierTensorBoard(train_path,
+                                             batch_size,
+                                             image_size,
+                                             learning_rate,
+                                             dropout_probability,
+                                             number_of_steps,
+                                             number_of_classes,
+                                             number_of_channels,
+                                             number_of_hidden_layer,
+                                             iteration)
+
+    tb_classifier11.train(galaxy_dataset)
+
+    # --------------- ITERATION 12 --------------- #
+    number_of_steps = 8000
+    number_of_channels = 2
+    number_of_hidden_layer = 2
+    learning_rate = 0.0015
+    iteration = 12
+
+    tb_classifier12 = MLPClassifierTensorBoard(train_path,
+                                             batch_size,
+                                             image_size,
+                                             learning_rate,
+                                             dropout_probability,
+                                             number_of_steps,
+                                             number_of_classes,
+                                             number_of_channels,
+                                             number_of_hidden_layer,
+                                             iteration)
+
+
+    tb_classifier12.train(galaxy_dataset)
+
 
 if __name__ == '__main__':
     main()
