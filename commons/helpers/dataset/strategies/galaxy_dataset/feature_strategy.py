@@ -186,4 +186,5 @@ class GalaxyDataSetFeatureStrategy:
             return self.create_datasets(features, labels, validation_size)
 
         except Exception as e:
+            print(e)
             raise UnableToLoadDatasetException("Unable to load galaxies data set with cause: " + str(e))

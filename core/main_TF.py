@@ -69,12 +69,12 @@ def main():
     #http://localhost:6006
 
     galaxy_dataset = get_galaxy_dataset(0.0)
-    train_path = os.environ["VIRTUAL_ENV"] + "/data"
+    train_path = os.environ["VIRTUAL_ENV"] + "/data/"
     batch_size = 100
     image_size = 74
     learning_rate = 0.0005
     dropout_probability = 0.5
-    number_of_steps = 8000
+    number_of_steps = 4000
     number_of_classes = 3
     number_of_channels = 2
     number_of_hidden_layer = 2

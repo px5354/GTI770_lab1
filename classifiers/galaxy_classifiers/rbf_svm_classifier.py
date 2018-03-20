@@ -22,11 +22,12 @@ from sklearn.svm import SVC
 
 class SVMClassifier(object):
 
-    def __init__(self, C, gamma, kernel):
+    def __init__(self, C, gamma, kernel, cache_size=2048):
         self.model = SVC()
         self.model.C = C
         self.model.gamma = gamma
         self.model.kernel = kernel
+        self.model.cache_size = cache_size
 
     def standardize(self, X):
         """ Standardize the data.
