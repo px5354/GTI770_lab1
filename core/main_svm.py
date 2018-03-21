@@ -123,6 +123,27 @@ def apply_noise_to_features(dataset, noise):
     features_with_noise = dataset + noise_value
     return features_with_noise
 
+def split_data_for_k_fold(X, y, n_splits=10):
+    """ splits data for k fold cross validation
+
+    Use scikit-learn methods to splits data for k fold cross validation
+
+    Args:
+        X: features
+        y: labels
+        n_splits: parameters for k fold cross validation
+    Returns:
+        training data, training labels, valid data, valid labels
+    """
+    kf = KFold(n_splits=n_splits)
+    kf.get_n_splits(X)
+
+    for train_index, test_index in kf.split(X):
+        X_train, X_test = X[train_index], X[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+
+    return X_train, y_train, X_test, y_test
+
 def get_linear_svm_classifier(X_train, y_train, C, class_weight):
     """ get the decision tree classifier
 
@@ -217,23 +238,35 @@ def get_rbf_svm_results(c_params, g_params, X_train, y_train, X_test, y_test):
 
 def main():
     validation_size = 0.20
+    features_indexes = [3, 4, 5, 18, 22, 23]
+    cross_validation_size = 1
     print("VALIDATION SIZE: ", str(validation_size))
 
     galaxy_dataset = get_galaxy_dataset(validation_size)
 
-    X_train, X_test = get_specific_features(galaxy_dataset.train.get_features, galaxy_dataset.valid.get_features, [3, 4, 5, 18, 22, 23])
-    y_train = galaxy_dataset.train.get_labels
-    y_test = galaxy_dataset.valid.get_labels
+    # --------------------------------- VALIDATION METHOD --------------------------------------------
 
-    C = [0.001, 0.1, 1.0, 10.0]
-    gamma = [0.001, 0.1, 1.0, 10.0]
-    linear_svm_results = get_linear_svm_results(C, X_train, y_train, X_test, y_test)
+    # HOLD OUT
+    # X_train, X_test = get_specific_features(galaxy_dataset.train.get_features, galaxy_dataset.valid.get_features, features_indexes)
+    # y_train = galaxy_dataset.train.get_labels
+    # y_test = galaxy_dataset.valid.get_labels
 
-    rbf_svm_results = get_rbf_svm_results(C, gamma, X_train, y_train, X_test, y_test)
+    # K FOLD CV
+    # all_galaxy_dataset = get_galaxy_dataset(cross_validation_size)
+    # X_train, y_train, X_test, y_test = split_data_for_k_fold(all_galaxy_dataset.valid.get_features,all_galaxy_dataset.valid.get_labels)
+    # X_train, X_test = get_specific_features(X_train, X_test, features_indexes)
 
-    print("LINEAR SVM: ", linear_svm_results)
-    print("RBF SVM: ", rbf_svm_results)
-    print("___________________________________________________________")
+    # --------------------------------- END VALIDATION METHOD --------------------------------------------
+
+    # C = [0.001, 0.1, 1.0, 10.0]
+    # gamma = [0.001, 0.1, 1.0, 10.0]
+    # linear_svm_results = get_linear_svm_results(C, X_train, y_train, X_test, y_test)
+    #
+    # rbf_svm_results = get_rbf_svm_results(C, gamma, X_train, y_train, X_test, y_test)
+    #
+    # print("LINEAR SVM: ", linear_svm_results)
+    # print("RBF SVM: ", rbf_svm_results)
+    # print("___________________________________________________________")
 
     #-----------------------------START code for getting the best parameters--------------------------------------------
     # param_grid = dict(gamma=gamma, C=C)
@@ -256,7 +289,6 @@ def main():
     noises = [0, 0.05, 0.10, 0.20]
     proportions = [0.25, 0.5, 0.75, 1]
     state = 1
-    features_indexes = [3, 4, 5, 18, 22, 23]
 
     for proportion in proportions:
         for noise in noises:
@@ -265,11 +297,19 @@ def main():
 
             features, labels = train_set_with_size(galaxy_dataset, proportion, state)
 
-            # train_features = apply_noise_to_features(train_features, noise)
+            #--------------------------------- VALIDATION METHOD --------------------------------------------
 
-            X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=validation_size, random_state=state)
+            # HOLD OUT
+            # X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=validation_size, random_state=state)
+            # X_train, X_test = get_specific_features(X_train, X_test, features_indexes)
 
+            # K FOLD CV
+            all_galaxy_dataset = get_galaxy_dataset(cross_validation_size)
+            X_train, y_train, X_test, y_test = split_data_for_k_fold(all_galaxy_dataset.valid.get_features,
+                                                                     all_galaxy_dataset.valid.get_labels)
             X_train, X_test = get_specific_features(X_train, X_test, features_indexes)
+
+            # --------------------------------- END VALIDATION METHOD ----------------------------------------
 
             X_train_with_noise = apply_noise_to_features(X_train, noise)
 

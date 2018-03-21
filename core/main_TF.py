@@ -68,7 +68,7 @@ def main():
     #directory: ~/Documents/GTI770_lab1/project$
     #http://localhost:6006
 
-    #tensorboa --logdir=logs/
+    #tensorboard --logdir=logs/
 
     galaxy_dataset = get_galaxy_dataset(0.0)
     train_path = os.environ["VIRTUAL_ENV"] + "/data/logs/"
@@ -183,7 +183,7 @@ def main():
 
 
     # --------------- ITERATION 5 --------------- #
-    number_of_steps = 4000
+    number_of_steps = 8000
     number_of_channels = 5
     number_of_hidden_layer = 2
     learning_rate = 0.0005
@@ -204,7 +204,7 @@ def main():
 
 
     # --------------- ITERATION 6 --------------- #
-    number_of_steps = 4000
+    number_of_steps = 8000
     number_of_channels = 7
     number_of_hidden_layer = 2
     learning_rate = 0.0005
