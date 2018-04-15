@@ -209,12 +209,12 @@ def main():
 
     classes_mean = 10967
 
-    # remove_unused_columns(mfcc_path + "msd-jmirmfccs_dev.csv")
-    # remove_unused_columns(spectral_derivatives_path + "msd-jmirderivatives_dev.csv")
-    # remove_unused_columns(ssd_path + "msd-ssd_dev.csv")
-    # balance_classes(real_mfcc_file, music_labels, classes_mean)
-    # balance_classes(real_spectral_derivatives_file, music_labels, classes_mean)
-    # balance_classes(real_ssd_file, music_labels, classes_mean)
+    remove_unused_columns(mfcc_path + "msd-jmirmfccs_dev.csv")
+    remove_unused_columns(spectral_derivatives_path + "msd-jmirderivatives_dev.csv")
+    remove_unused_columns(ssd_path + "msd-ssd_dev.csv")
+    balance_classes(real_mfcc_file, music_labels, classes_mean)
+    balance_classes(real_spectral_derivatives_file, music_labels, classes_mean)
+    balance_classes(real_ssd_file, music_labels, classes_mean)
 
     dataset_mfcc = get_dataset(0.2, MusicGenreJMIRMFCCsStrategy(), real_mfcc_file)
     dataset_spectral_derivatives = get_dataset(0.2, MusicGenreJMIRDERIVATIVESsStrategy(),
@@ -251,21 +251,21 @@ def main():
 
     norm_train_mfcc = pca_mfcc.transform(norm_train_mfcc)
     norm_valid_mfcc = pca_mfcc.transform(norm_valid_mfcc)
-    norm_train_spec_deriv = pca_spec_deriv.transform(norm_train_spec_deriv)
-    norm_valid_spec_deriv = pca_spec_deriv.transform(norm_valid_spec_deriv)
-    norm_train_ssd = pca_ssd.transform(norm_train_ssd)
-    norm_valid_ssd = pca_ssd.transform(norm_valid_ssd)
+    # norm_train_spec_deriv = pca_spec_deriv.transform(norm_train_spec_deriv)
+    # norm_valid_spec_deriv = pca_spec_deriv.transform(norm_valid_spec_deriv)
+    # norm_train_ssd = pca_ssd.transform(norm_train_ssd)
+    # norm_valid_ssd = pca_ssd.transform(norm_valid_ssd)
 
     # -------------------- MFCC  --------------------
-    spam_X_train = norm_train_mfcc.get_features
-    spam_y_train = norm_train_mfcc.get_labels
-    spam_X_test = norm_valid_mfcc.get_features
-    spam_y_test = norm_valid_mfcc.get_labels
+    spam_X_train = norm_train_mfcc
+    spam_y_train = dataset_mfcc.train.get_labels
+    spam_X_test = norm_valid_mfcc
+    spam_y_test = dataset_mfcc.train.get_labels
     spam_class_prob = [0.4003, 0.5997]
 
     # params
-    neighbors_params = [3, 5, 10]
-    weights_params = ['uniform', 'distance']
+    neighbors_params = [20]
+    weights_params = ['distance']
 
     # results
     knn_results = get_knn_results(neighbors_params, weights_params, spam_X_train, spam_y_train, spam_X_test,
