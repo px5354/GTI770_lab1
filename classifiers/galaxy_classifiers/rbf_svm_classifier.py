@@ -46,10 +46,10 @@ class SVMClassifier(object):
         return X
 
     def train(self, X, y):
-        self.model.fit(X, y)
+        self.model.fit(self.standardize(X), y)
 
     def predict(self, value):
-        return self.model.predict(value)
+        return self.model.predict(self.standardize(value))
 
     def score(self, X_test, y_test):
-        return self.model.score(X_test, y_test)
+        return self.model.score(self.standardize(X_test), y_test)

@@ -31,6 +31,7 @@ from random import choice
 
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.svm import SVC
+from sklearn.model_selection import cross_val_score
 
 from classifiers.galaxy_classifiers.decision_tree_classifier import TreeClassifier
 
@@ -234,7 +235,8 @@ def get_rbf_svm_results(c_params, g_params, X_train, y_train, X_test, y_test):
             results.append([params, score_result, f1_score_result])
 
     # print("RBF SVM: ", results)
-    return results
+    if __name__ == '__main__':
+        main()
 
 def main():
     validation_size = 0.20
@@ -252,21 +254,21 @@ def main():
     # y_test = galaxy_dataset.valid.get_labels
 
     # K FOLD CV
-    # all_galaxy_dataset = get_galaxy_dataset(cross_validation_size)
-    # X_train, y_train, X_test, y_test = split_data_for_k_fold(all_galaxy_dataset.valid.get_features,all_galaxy_dataset.valid.get_labels)
-    # X_train, X_test = get_specific_features(X_train, X_test, features_indexes)
+    all_galaxy_dataset = get_galaxy_dataset(cross_validation_size)
+    X_train, y_train, X_test, y_test = split_data_for_k_fold(all_galaxy_dataset.valid.get_features,all_galaxy_dataset.valid.get_labels)
+    X_train, X_test = get_specific_features(X_train, X_test, features_indexes)
 
     # --------------------------------- END VALIDATION METHOD --------------------------------------------
 
-    # C = [0.001, 0.1, 1.0, 10.0]
-    # gamma = [0.001, 0.1, 1.0, 10.0]
-    # linear_svm_results = get_linear_svm_results(C, X_train, y_train, X_test, y_test)
-    #
-    # rbf_svm_results = get_rbf_svm_results(C, gamma, X_train, y_train, X_test, y_test)
-    #
-    # print("LINEAR SVM: ", linear_svm_results)
-    # print("RBF SVM: ", rbf_svm_results)
-    # print("___________________________________________________________")
+    C = [0.001, 0.1, 1.0, 10.0]
+    gamma = [0.001, 0.1, 1.0, 10.0]
+    linear_svm_results = get_linear_svm_results(C, X_train, y_train, X_test, y_test)
+
+    rbf_svm_results = get_rbf_svm_results(C, gamma, X_train, y_train, X_test, y_test)
+
+    print("LINEAR SVM: ", linear_svm_results)
+    print("RBF SVM: ", rbf_svm_results)
+    print("___________________________________________________________")
 
     #-----------------------------START code for getting the best parameters--------------------------------------------
     # param_grid = dict(gamma=gamma, C=C)
@@ -323,5 +325,4 @@ def main():
 
 
 
-if __name__ == '__main__':
-    main()
+    # return results

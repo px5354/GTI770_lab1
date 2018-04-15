@@ -37,6 +37,11 @@ class DataSet(object):
         return self._features
 
     @property
+    def get_features(self):
+        return self._features
+
+
+    @property
     def get_labels(self):
         return self._labels
 

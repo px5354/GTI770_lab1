@@ -27,7 +27,7 @@ from commons.exceptions.validationSizeException import ValidationSizeException
 from commons.helpers.dataset.dataset import DataSet
 
 
-class MusicGenreJMIRMFCCsStrategy:
+class MusicGenreSSDsStrategy:
     """
         A class for handling data set files of type (galaxy ID, class).
     """
@@ -126,15 +126,15 @@ class MusicGenreJMIRMFCCsStrategy:
 
                 # For each row, store the galaxy ID and its associated class.
                 for row in reader:
-                    for i in range(0, 26):
+                    for i in range(0, 168):
                         mfccs.append(row[i])
-                    labels.append(row[26])
+                    labels.append(row[168])
 
         except FileNotFoundError:
             raise FileNotFoundException("CSV file not found. Please enter in parameter a valid CSV file.")
 
         # Transforms the lists into a vertical numpy array.
-        mfccs = np.array(mfccs).reshape(-1, 26)
+        mfccs = np.array(mfccs).reshape(-1, 168)
         labels = np.array(labels).reshape(-1, 1)
 
         # Declare a label encoder from scikit-learn.
@@ -168,7 +168,7 @@ class MusicGenreJMIRMFCCsStrategy:
         Returns:
             A DataSet object containing training and validation set.
         """
-        
+
         try:
             mfccs, labels = self._read_labels(csv_file, one_hot)
             return self._create_datasets(mfccs, labels, validation_size)

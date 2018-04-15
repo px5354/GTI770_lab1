@@ -53,6 +53,22 @@ from commons.preprocessors.discretization.strategies.supervised.supervised_discr
 from classifiers.galaxy_classifiers.mlp_tensorboard import MLPClassifierTensorBoard
 
 
+def standardize(X):
+    """ Standardize the data.
+
+    Args:
+        X: The input vector [n_sample, n_feature].
+
+    Returns:
+        X: The input vector with standardized values.
+    """
+
+    mean = X.mean(axis=0)
+    std = X.std(axis=0)
+    X = ((X - mean) / std)
+
+    return X
+
 def get_galaxy_dataset(validation_size):
 
     stategy = GalaxyDataSetFeatureStrategy()
