@@ -39,6 +39,7 @@ from commons.helpers.dataset.strategies.music_genre_dataset.jmirderivatives_stra
 from commons.helpers.dataset.strategies.music_genre_dataset.ssd_strategy import MusicGenreSSDsStrategy
 
 from classifiers.galaxy_classifiers.knn_classifier import KNNClassifier
+from classifiers.galaxy_classifiers.gaussian_naive_bayes_classifier import GaussianNaiveBayesClassifier
 
 music_labels = ["BIG_BAND", "BLUES_CONTEMPORARY", "COUNTRY_TRADITIONAL", "DANCE", "ELECTRONICA", "EXPERIMENTAL",
                 "FOLK_INTERNATIONAL", "GOSPEL", "GRUNGE_EMO", "HIP_HOP_RAP", "JAZZ_CLASSIC", "METAL_ALTERNATIVE",
@@ -121,8 +122,36 @@ def get_knn_results(neighbors, weights, X_train, y_train, X_test, y_test):
 
             results_knn.append([params, score_result, f1_score_result])
 
-    print("KNN: ", results_knn)
     return results_knn
+
+
+def calculate_naive_bayes(name, X_train, y_train, X_test, y_test):
+    """ return naive bayes results
+
+    compute models accuracy with scikit-learn functions
+
+    Args:
+        multinomial_naive_bayes_datasets: datasets params
+        class_prob: classes probabilities
+        is_k_fold: if we apply k fold
+    Returns:
+        results
+    """
+
+    naive_bayes_results = list()
+
+    # Gaussian Naive Bayes
+    naive_bayes_classifier = get_gaussian_naive_bayes(X_train, y_train)
+
+    y_pred = naive_bayes_classifier.predict(X_test)
+    y_true = y_test
+
+    gaussian_score_result = naive_bayes_classifier.score(X_test, y_test)
+    gaussian_f1_score_result = f1_score(y_true, y_pred, average='weighted')
+
+    naive_bayes_results.append(['gaussian', gaussian_score_result, gaussian_f1_score_result])
+    print(name)
+    print("NAIVE BAYES: ", naive_bayes_results)
 
 
 def get_knn(X_train, y_train, n_neighbors, weights):
@@ -146,59 +175,41 @@ def get_knn(X_train, y_train, n_neighbors, weights):
     return knn
 
 
-def plot_hyper_parameters_comparison(params_array, results, title, xlabel_name, filename, results2=None):
-    """ save plot bar of parameters comparison
+def get_gaussian_naive_bayes(X_train, y_train, priors=None):
+    """ get the gaussian classifier
 
-    Use matplotlib methods to compute a decision tree score
+    Use scikit-learn methods to compute a decision tree score
 
     Args:
-        results: results to compare
-        title: plot title
-        xlabel_name: xlabel name
-        filename: filename
+        X_train: The training values
+        y_train: Training labels
+        priors: Classes probabilities
 
+    Returns:
+        The Classifier.
     """
-    x = params_array
-    y_score = list()
-    y_f1_score = list()
-    for result in results:
-        y_score.append(result[1])
-        y_f1_score.append(result[2])
 
-    # Set graphics properties
-    fig = plt.figure(figsize=(6, 6))
-    ax = fig.add_subplot(111)
-    ax.set_title(title, fontsize=14)
-    plt.xticks(x, x)
-    ax.set_xlabel(xlabel_name, fontsize=12)
-    ax.set_ylabel("score", fontsize=12)
-    ax.grid(True, linestyle='-', color='0.75')
+    gnb = GaussianNaiveBayesClassifier(priors=priors)
+    gnb.train(X_train, y_train)
 
-    # Plot
-    ax.margins(0.05)
+    return gnb
 
-    if results2 is None:
-        ax.plot(x, y_score, marker='o', linestyle='-', ms=10, label="score")
-        ax.plot(x, y_f1_score, marker='o', linestyle='-', ms=10, label="f1_score")
-    else:
-        y2_score = list()
-        y2_f1_score = list()
-        result_name = results[0][0].split(";weights=")[1]
-        result2_name = results2[0][0].split(";weights=")[1]
-        for result in results2:
-            y2_score.append(result[1])
-            y2_f1_score.append(result[2])
-        ax.plot(x, y_score, marker='o', linestyle='-', ms=10, label="score_" + result_name)
-        ax.plot(x, y_f1_score, marker='o', linestyle='-', ms=10, label="f1_score_" + result_name)
-        ax.plot(x, y2_score, marker='o', linestyle='-', ms=10, label="score_" + result2_name)
-        ax.plot(x, y2_f1_score, marker='o', linestyle='-', ms=10, label="f1_score_" + result2_name)
 
-    ax.legend()
-    plt.savefig(filename)
+def calculate_knn(name, neighbors_params, weights_params, X_train, y_train, X_test, y_test):
+    knn_results = get_knn_results(neighbors_params, weights_params, X_train, y_train, X_test, y_test)
+
+    # Plot results
+    results_knn_distance = list()
+
+    for result in knn_results:
+        results_knn_distance.append(result)
+
+    print(name)
+    print("NORMAL KNN: ", knn_results)
 
 
 def main():
-    # mfcc classes mean = 10967.44 ~ 10967
+    # mfcc classes mean = 7182.2 ~ 7200
     csv_path = os.environ["VIRTUAL_ENV"] + "/data/music/tagged_feature_sets/"
     mfcc_path = csv_path + "msd-jmirmfccs_dev/"
     spectral_derivatives_path = csv_path + "msd-jmirderivatives_dev/"
@@ -207,7 +218,7 @@ def main():
     real_spectral_derivatives_file = spectral_derivatives_path + "msd-jmirderivatives_dev_clean.csv"
     real_ssd_file = ssd_path + "msd-ssd_dev_clean.csv"
 
-    classes_mean = 10967
+    classes_mean = 7200
 
     remove_unused_columns(mfcc_path + "msd-jmirmfccs_dev.csv")
     remove_unused_columns(spectral_derivatives_path + "msd-jmirderivatives_dev.csv")
@@ -249,42 +260,54 @@ def main():
     print(pca_ssd.explained_variance_ratio_)
     print(pca_ssd.singular_values_)
 
-    norm_train_mfcc = pca_mfcc.transform(norm_train_mfcc)
-    norm_valid_mfcc = pca_mfcc.transform(norm_valid_mfcc)
-    # norm_train_spec_deriv = pca_spec_deriv.transform(norm_train_spec_deriv)
-    # norm_valid_spec_deriv = pca_spec_deriv.transform(norm_valid_spec_deriv)
-    # norm_train_ssd = pca_ssd.transform(norm_train_ssd)
-    # norm_valid_ssd = pca_ssd.transform(norm_valid_ssd)
-
-    # -------------------- MFCC  --------------------
-    spam_X_train = norm_train_mfcc
-    spam_y_train = dataset_mfcc.train.get_labels
-    spam_X_test = norm_valid_mfcc
-    spam_y_test = dataset_mfcc.train.get_labels
-    spam_class_prob = [0.4003, 0.5997]
-
-    # params
-    neighbors_params = [20]
+    neighbors_params = [3, 7, 11, 15, 19, 21]
     weights_params = ['distance']
 
-    # results
-    knn_results = get_knn_results(neighbors_params, weights_params, spam_X_train, spam_y_train, spam_X_test,
-                                  spam_y_test)
+    # Normalized feature sets
+    norm_train_mfcc = pca_mfcc.transform(norm_train_mfcc)
+    norm_valid_mfcc = pca_mfcc.transform(norm_valid_mfcc)
 
-    # Plot results
-    results_knn_uniform = list()
-    results_knn_distance = list()
+    norm_train_spec_deriv = pca_spec_deriv.transform(norm_train_spec_deriv)
+    norm_valid_spec_deriv = pca_spec_deriv.transform(norm_valid_spec_deriv)
 
-    for result in knn_results:
-        if result[0].split(";weights=")[1] == "uniform":
-            results_knn_uniform.append(result)
-        else:
-            results_knn_distance.append(result)
+    norm_train_ssd = pca_ssd.transform(norm_train_ssd)
+    norm_valid_ssd = pca_ssd.transform(norm_valid_ssd)
 
-    print("NORMAL KNN: ", knn_results)
+    # -------------------- MFCC --------------------
+    # KNN
+    # calculate_knn("MFCC", neighbors_params, weights_params,
+    #               norm_train_mfcc, dataset_mfcc.train.get_labels,
+    #               norm_valid_mfcc, dataset_mfcc.valid.get_labels)
 
-    plot_hyper_parameters_comparison(neighbors_params, results_knn_uniform, "KNN with different weights", "n_neighbors",
-                                     os.environ["VIRTUAL_ENV"] + "/data/csv/spam/knn_spam.png", results_knn_distance)
+    # NAIVES BAYES
+    calculate_naive_bayes("MFCC",
+                          norm_train_mfcc, dataset_mfcc.train.get_labels,
+                          norm_valid_mfcc, dataset_mfcc.valid.get_labels)
+    # ---------------------------------------------------
+
+    # -------------------- DERIVATES --------------------
+    # KNN
+    # calculate_knn("DERIVATIVES", neighbors_params, weights_params,
+    #               norm_train_spec_deriv, dataset_spectral_derivatives.train.get_labels,
+    #               norm_valid_spec_deriv, dataset_spectral_derivatives.valid.get_labels)
+
+    # NAIVES BAYES
+    calculate_naive_bayes("DERIVATIVES",
+                          norm_train_spec_deriv, dataset_spectral_derivatives.train.get_labels,
+                          norm_valid_spec_deriv, dataset_spectral_derivatives.valid.get_labels)
+    # ---------------------------------------------------
+
+    # -------------------- SDD--------------------
+    # KNN
+    # calculate_knn("SDD", neighbors_params, weights_params,
+    #               norm_train_ssd, dataset_sdd.train.get_labels,
+    #               norm_valid_ssd, dataset_sdd.valid.get_labels)
+
+    # NAIVES BAYES
+    calculate_naive_bayes("SDD",
+                          norm_train_ssd, dataset_sdd.train.get_labels,
+                          norm_valid_ssd, dataset_sdd.valid.get_labels)
+    # ---------------------------------------------------
 
     print("hello")
 

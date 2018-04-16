@@ -22,7 +22,7 @@ class KNNClassifier(object):
     """ An object containing a decision tree classifier. """
 
     def __init__(self, nb_neighbors, weights):
-        self.model = KNeighborsClassifier()
+        self.model = KNeighborsClassifier(n_jobs=8)
         self.model.n_neighbors = nb_neighbors
         self.model.weights = weights
 
