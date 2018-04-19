@@ -29,7 +29,7 @@ import random
 
 from random import choice
 
-from sklearn.model_selection import StratifiedShuffleSplit
+
 from sklearn.svm import SVC
 from sklearn.model_selection import cross_val_score
 
@@ -55,6 +55,7 @@ from commons.preprocessors.discretization.strategies.supervised.supervised_discr
 
 from classifiers.galaxy_classifiers.mlp_tensorboard import MLPClassifierTensorBoard
 
+from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.model_selection import GridSearchCV
 from classifiers.galaxy_classifiers.linear_svm_classifier import LinearSVMClassifier
 from classifiers.galaxy_classifiers.rbf_svm_classifier import SVMClassifier

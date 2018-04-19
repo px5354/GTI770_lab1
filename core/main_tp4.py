@@ -22,6 +22,7 @@ Notes : This file is to generate everything we want from feature vectors compute
 """
 
 import os
+import time
 import numpy as np
 import pandas as pd
 
@@ -39,6 +40,14 @@ from commons.helpers.dataset.strategies.music_genre_dataset.jmirderivatives_stra
 from commons.helpers.dataset.strategies.music_genre_dataset.ssd_strategy import MusicGenreSSDsStrategy
 
 from classifiers.galaxy_classifiers.knn_classifier import KNNClassifier
+from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from classifiers.music_genre_classifiers.random_forest_classifier import RandForestClassifier
+from sklearn.ensemble import VotingClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+import pickle
 
 music_labels = ["BIG_BAND", "BLUES_CONTEMPORARY", "COUNTRY_TRADITIONAL", "DANCE", "ELECTRONICA", "EXPERIMENTAL",
                 "FOLK_INTERNATIONAL", "GOSPEL", "GRUNGE_EMO", "HIP_HOP_RAP", "JAZZ_CLASSIC", "METAL_ALTERNATIVE",
@@ -87,9 +96,9 @@ def balance_classes(file_name, labels, up_down_sample_n):
 # http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.normalize.html
 def normalize_data(X):
     # X = normalize(X, axis=0, norm='max')
+    # get_params save it to scale prediction dataset
     X = scale(X)
     return X
-
 
 def get_knn_results(neighbors, weights, X_train, y_train, X_test, y_test):
     """ return knn results
@@ -145,60 +154,87 @@ def get_knn(X_train, y_train, n_neighbors, weights):
 
     return knn
 
+def get_rand_forest_results(max_depths, n_estimators, X_train, y_train, X_test, y_test):
+    """ return knn results
 
-def plot_hyper_parameters_comparison(params_array, results, title, xlabel_name, filename, results2=None):
-    """ save plot bar of parameters comparison
-
-    Use matplotlib methods to compute a decision tree score
+    compute models accuracy with scikit-learn functions
 
     Args:
-        results: results to compare
-        title: plot title
-        xlabel_name: xlabel name
-        filename: filename
-
+        neighbors: number of neighbors
+        weights: weight function
+        X_train: train data
+        y_train: train label
+        X_test: valid data
+        y_test: valid label
+    Returns:
+        results
     """
-    x = params_array
-    y_score = list()
-    y_f1_score = list()
-    for result in results:
-        y_score.append(result[1])
-        y_f1_score.append(result[2])
+    # ------------------------ KNN ------------------------
+    results = list()
+    for md in max_depths:
+        for ne in n_estimators:
+            clf = RandomForestClassifier(n_jobs=8, oob_score=True, max_depth=md, n_estimators=ne)
+            clf.fit(X_train, y_train)
+            params = "max_depth=" + str(md) + ";n_estimators=" + str(ne)
 
-    # Set graphics properties
-    fig = plt.figure(figsize=(6, 6))
-    ax = fig.add_subplot(111)
-    ax.set_title(title, fontsize=14)
-    plt.xticks(x, x)
-    ax.set_xlabel(xlabel_name, fontsize=12)
-    ax.set_ylabel("score", fontsize=12)
-    ax.grid(True, linestyle='-', color='0.75')
+            y_pred = clf.predict(X_test)
+            y_true = y_test
 
-    # Plot
-    ax.margins(0.05)
+            score_result = clf.score(X_test, y_test)
+            train_score_result = clf.score(X_train, y_train)
+            f1_score_result = f1_score(y_true, y_pred, average='weighted')
 
-    if results2 is None:
-        ax.plot(x, y_score, marker='o', linestyle='-', ms=10, label="score")
-        ax.plot(x, y_f1_score, marker='o', linestyle='-', ms=10, label="f1_score")
-    else:
-        y2_score = list()
-        y2_f1_score = list()
-        result_name = results[0][0].split(";weights=")[1]
-        result2_name = results2[0][0].split(";weights=")[1]
-        for result in results2:
-            y2_score.append(result[1])
-            y2_f1_score.append(result[2])
-        ax.plot(x, y_score, marker='o', linestyle='-', ms=10, label="score_" + result_name)
-        ax.plot(x, y_f1_score, marker='o', linestyle='-', ms=10, label="f1_score_" + result_name)
-        ax.plot(x, y2_score, marker='o', linestyle='-', ms=10, label="score_" + result2_name)
-        ax.plot(x, y2_f1_score, marker='o', linestyle='-', ms=10, label="f1_score_" + result2_name)
+            results.append([params, score_result, f1_score_result, train_score_result])
 
-    ax.legend()
-    plt.savefig(filename)
+    print("Random Forest: ", results)
+    return results
 
+
+def get_voting_classifier_results(voting, weights, clf1, clf2, clf3, X_train, y_train, X_test, y_test):
+    """ return knn results
+
+    compute models accuracy with scikit-learn functions
+
+    Args:
+        neighbors: number of neighbors
+        weights: weight function
+        X_train: train data
+        y_train: train label
+        X_test: valid data
+        y_test: valid label
+    Returns:
+        results
+    """
+    # ------------------------ KNN ------------------------
+    results = list()
+    for v in voting:
+        for w in weights:
+            clf = VotingClassifier(voting=v, weights=w, estimators=[('gnb', clf1), ('knn', clf2), ('rf', clf3)], n_jobs=8)
+            clf.fit(X_train, y_train)
+            params = "voting=" + v + ";weights=" + str(w)
+
+            y_pred = clf.predict(X_test)
+            y_true = y_test
+
+            score_result = clf.score(X_test, y_test)
+            train_score_result = clf.score(X_train, y_train)
+            f1_score_result = f1_score(y_true, y_pred, average='weighted')
+
+            results.append([params, score_result, f1_score_result, train_score_result])
+
+    print("Voting Classifier: ", results)
+    return results
+
+def get_best_params_for_model(param_grid, model, train_X, train_y):
+
+    cv = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=1)
+    grid = GridSearchCV(model, param_grid=param_grid, cv=cv, n_jobs=8)
+    grid.fit(train_X, train_y)
+    return grid
 
 def main():
-    # mfcc classes mean = 10967.44 ~ 10967
+    start_time = time.time()
+    # classes mean = 7182.2 ~ 7200
     csv_path = os.environ["VIRTUAL_ENV"] + "/data/music/tagged_feature_sets/"
     mfcc_path = csv_path + "msd-jmirmfccs_dev/"
     spectral_derivatives_path = csv_path + "msd-jmirderivatives_dev/"
@@ -207,7 +243,9 @@ def main():
     real_spectral_derivatives_file = spectral_derivatives_path + "msd-jmirderivatives_dev_clean.csv"
     real_ssd_file = ssd_path + "msd-ssd_dev_clean.csv"
 
-    classes_mean = 10967
+    classes_mean = 7200
+
+    # PRETRAITEMENT DES DONNEES
 
     remove_unused_columns(mfcc_path + "msd-jmirmfccs_dev.csv")
     remove_unused_columns(spectral_derivatives_path + "msd-jmirderivatives_dev.csv")
@@ -251,41 +289,151 @@ def main():
 
     norm_train_mfcc = pca_mfcc.transform(norm_train_mfcc)
     norm_valid_mfcc = pca_mfcc.transform(norm_valid_mfcc)
-    # norm_train_spec_deriv = pca_spec_deriv.transform(norm_train_spec_deriv)
-    # norm_valid_spec_deriv = pca_spec_deriv.transform(norm_valid_spec_deriv)
-    # norm_train_ssd = pca_ssd.transform(norm_train_ssd)
-    # norm_valid_ssd = pca_ssd.transform(norm_valid_ssd)
+    norm_train_spec_deriv = pca_spec_deriv.transform(norm_train_spec_deriv)
+    norm_valid_spec_deriv = pca_spec_deriv.transform(norm_valid_spec_deriv)
+    norm_train_ssd = pca_ssd.transform(norm_train_ssd)
+    norm_valid_ssd = pca_ssd.transform(norm_valid_ssd)
 
-    # -------------------- MFCC  --------------------
-    spam_X_train = norm_train_mfcc
-    spam_y_train = dataset_mfcc.train.get_labels
-    spam_X_test = norm_valid_mfcc
-    spam_y_test = dataset_mfcc.train.get_labels
-    spam_class_prob = [0.4003, 0.5997]
+    # ENTRAINEMENT DES MODELES
 
-    # params
-    neighbors_params = [20]
-    weights_params = ['distance']
+    clf1 = GaussianNB()
+    clf2 = KNeighborsClassifier(n_jobs=8, n_neighbors=21, weights='distance')
+    clf3_1 = RandomForestClassifier(n_jobs=8, oob_score=True, max_depth=15, n_estimators=50)
+    clf3_2 = RandomForestClassifier(n_jobs=8, oob_score=True, max_depth=19, n_estimators=50)
 
-    # results
-    knn_results = get_knn_results(neighbors_params, weights_params, spam_X_train, spam_y_train, spam_X_test,
-                                  spam_y_test)
+    # get_rand_forest_results([15], [50], norm_train_mfcc, dataset_mfcc.train.get_labels,
+    #                         norm_valid_mfcc, dataset_mfcc.valid.get_labels)
+    #
+    # get_rand_forest_results([19], [50], norm_train_spec_deriv, dataset_spectral_derivatives.train.get_labels,
+    #                         norm_valid_spec_deriv, dataset_spectral_derivatives.valid.get_labels)
+    #
+    # get_rand_forest_results([19], [50], norm_train_ssd, dataset_sdd.train.get_labels,
+    #                         norm_valid_ssd, dataset_sdd.valid.get_labels)
 
-    # Plot results
-    results_knn_uniform = list()
-    results_knn_distance = list()
+    # voting_params = ['soft']
+    # weights_params = [[1, 2, 3]]
 
-    for result in knn_results:
-        if result[0].split(";weights=")[1] == "uniform":
-            results_knn_uniform.append(result)
-        else:
-            results_knn_distance.append(result)
+    # get_voting_classifier_results(voting_params, weights_params, clf1, clf2, clf3_1, norm_train_mfcc,
+    #                               dataset_mfcc.train.get_labels, norm_valid_mfcc, dataset_mfcc.valid.get_labels)
+    #
+    # get_voting_classifier_results(voting_params, weights_params, clf1, clf2, clf3_2, norm_train_spec_deriv,
+    #                               dataset_spectral_derivatives.train.get_labels, norm_valid_spec_deriv,
+    #                               dataset_spectral_derivatives.valid.get_labels)
+    #
+    # get_voting_classifier_results(voting_params, weights_params, clf1, clf2, clf3_2, norm_train_ssd,
+    #                               dataset_sdd.train.get_labels, norm_valid_ssd, dataset_sdd.valid.get_labels)
 
-    print("NORMAL KNN: ", knn_results)
+    eclf_mfcc = VotingClassifier(voting='soft', weights=[1, 2, 3], estimators=[('gnb', clf1), ('knn', clf2), ('rf', clf3_1)], n_jobs=8)
+    eclf_deriv = VotingClassifier(voting='soft', weights=[1, 2, 3], estimators=[('gnb', clf1), ('knn', clf2), ('rf', clf3_2)], n_jobs=8)
+    eclf_ssd = VotingClassifier(voting='soft', weights=[1, 2, 3], estimators=[('gnb', clf1), ('knn', clf2), ('rf', clf3_2)], n_jobs=8)
 
-    plot_hyper_parameters_comparison(neighbors_params, results_knn_uniform, "KNN with different weights", "n_neighbors",
-                                     os.environ["VIRTUAL_ENV"] + "/data/csv/spam/knn_spam.png", results_knn_distance)
+    eclf_mfcc.fit(norm_train_mfcc, dataset_mfcc.train.get_labels)
+    print(eclf_mfcc.score(norm_valid_mfcc, dataset_mfcc.valid.get_labels))
 
+    eclf_deriv.fit(norm_train_spec_deriv, dataset_spectral_derivatives.train.get_labels)
+    print(eclf_deriv.score(norm_valid_spec_deriv, dataset_spectral_derivatives.valid.get_labels))
+
+    eclf_ssd.fit(norm_train_ssd, dataset_sdd.train.get_labels)
+    print(eclf_ssd.score(norm_valid_ssd, dataset_sdd.valid.get_labels))
+
+    pickle.dump(eclf_mfcc, open('/models/mfcc_model', 'wb'))
+    pickle.dump(eclf_deriv, open('/models/deriv_model', 'wb'))
+    pickle.dump(eclf_ssd, open('/models/ssd_model', 'wb'))
+
+
+    #
+    # param_grid = dict(voting=['soft', 'hard'], weights=[[1, 1, 1], [1, 2, 2], [1, 2, 1], [1, 1, 2], [1, 3, 2], [1, 2, 3], [1, 3, 3]])
+    #
+    # cv = StratifiedShuffleSplit(n_splits=5, test_size=0.2, random_state=42)
+    # grid = GridSearchCV(eclf, param_grid=param_grid, cv=cv, n_jobs=8)
+    # grid.fit(norm_train_mfcc, dataset_mfcc.train.get_labels)
+    #
+
+
+    # clf1.fit(norm_train_mfcc, dataset_mfcc.train.get_labels)
+    # print(clf1.score(norm_valid_mfcc, dataset_mfcc.valid.get_labels))
+    #
+    # clf2.fit(norm_train_mfcc, dataset_mfcc.train.get_labels)
+    # print(clf2.score(norm_valid_mfcc, dataset_mfcc.valid.get_labels))
+    #
+    # clf3.fit(norm_train_mfcc, dataset_mfcc.train.get_labels)
+    # print(clf3.score(norm_valid_mfcc, dataset_mfcc.valid.get_labels))
+    #
+    # clf4.fit(norm_train_mfcc, dataset_mfcc.train.get_labels)
+    # print(clf4.score(norm_valid_mfcc, dataset_mfcc.valid.get_labels))
+    #
+    # clf5.fit(norm_train_mfcc, dataset_mfcc.train.get_labels)
+    # print(clf5.score(norm_valid_mfcc, dataset_mfcc.valid.get_labels))
+
+    # eclf.fit(norm_train_mfcc, dataset_mfcc.train.get_labels)
+    # print(eclf.score(norm_valid_mfcc, dataset_mfcc.valid.get_labels))
+    #
+    # eclf.fit(norm_train_spec_deriv, dataset_spectral_derivatives.train.get_labels)
+    # print(eclf.score(norm_valid_spec_deriv, dataset_spectral_derivatives.valid.get_labels))
+    #
+    # eclf.fit(norm_train_ssd, dataset_sdd.train.get_labels)
+    # print(eclf.score(norm_valid_ssd, dataset_sdd.valid.get_labels))
+    # print(eclf.predict(norm_train_ssd))
+
+    # max_depth_params = [5, 10, 15, 20]
+    # # n_estimators_params = [50, 100, 150]
+    # n_estimators_params = [100]
+    #
+    # print('MFCC')
+    # get_rand_forest_results(max_depth_params, n_estimators_params, norm_train_mfcc, dataset_mfcc.train.get_labels,
+    #                         norm_valid_mfcc, dataset_mfcc.valid.get_labels)
+    # print('spectral derivatives')
+    # get_rand_forest_results(max_depth_params, n_estimators_params, norm_train_spec_deriv,
+    #                         dataset_spectral_derivatives.train.get_labels, norm_valid_spec_deriv,
+    #                         dataset_spectral_derivatives.valid.get_labels)
+    #
+    # print('ssd')
+    # get_rand_forest_results(max_depth_params, n_estimators_params, norm_train_ssd, dataset_sdd.train.get_labels,
+    #                         norm_valid_ssd, dataset_sdd.valid.get_labels)
+    # rfc = RandomForestClassifier(n_jobs=8, random_state=1, oob_score=True, n_estimators=100, max_depth=10)
+    # rfc.fit(norm_train_mfcc, dataset_mfcc.train.get_labels)
+    # print(rfc.score(norm_valid_mfcc, dataset_mfcc.valid.get_labels))
+    #
+    # rfc.fit(norm_train_spec_deriv, dataset_spectral_derivatives.train.get_labels)
+    # print(rfc.score(norm_valid_spec_deriv, dataset_spectral_derivatives.valid.get_labels))
+    #
+    # rfc.fit(norm_train_ssd, dataset_sdd.train.get_labels)
+    # print(rfc.score(norm_valid_ssd, dataset_sdd.valid.get_labels))
+    # spam_class_prob = [0.4003, 0.5997]
+    #
+    # # params
+    # neighbors_params = [20]
+    # weights_params = ['distance']
+    #
+    # # results
+    # knn_results = get_knn_results(neighbors_params, weights_params, spam_X_train, spam_y_train, spam_X_test,
+    #                               spam_y_test)
+    #
+
+    # http://scikit-learn.org/stable/modules/ensemble.html#random-forests
+    # param_grid = dict(n_estimators=[25, 50, 100], max_depth=[3, 5, 10])
+    # rfc = RandomForestClassifier(min_samplen_jobs=8, random_state=1, oob_score=True)
+    # grid_params = get_best_params_for_model(param_grid,
+    #                                         RandomForestClassifier(n_jobs=8, random_state=1, oob_score=True),
+    #                                         norm_train_mfcc, dataset_mfcc.train.get_labels)
+    #
+    # print("The best parameters (mfcc) for random forest classifier are %s with a score of %0.2f"
+    #       % (grid_params.best_params_, grid_params.best_score_))
+    #
+    # grid_params = get_best_params_for_model(param_grid, RandomForestClassifier(n_jobs=8, random_state=1, oob_score=True),
+    #                                         norm_train_spec_deriv, dataset_spectral_derivatives.train.get_labels)
+    #
+    # print("The best parameters (deriv) for random forest classifier are %s with a score of %0.2f"
+    #       % (grid_params.best_params_, grid_params.best_score_))
+    #
+    # grid_params = get_best_params_for_model(param_grid, RandomForestClassifier(n_jobs=8, random_state=1, oob_score=True),
+    #                                         norm_train_ssd, dataset_sdd.train.get_labels)
+    #
+    # print("The best parameters (ssd) for random forest classifier are %s with a score of %0.2f"
+    #       % (grid_params.best_params_, grid_params.best_score_))
+
+
+    print("--- %s seconds ---" % (time.time() - start_time))
     print("hello")
 
 
