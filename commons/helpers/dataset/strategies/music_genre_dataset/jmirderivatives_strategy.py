@@ -17,7 +17,6 @@ Group :
 import csv
 
 import numpy as np
-from skimage.external.tifffile.tifffile import FileNotFoundError
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 from sklearn.utils import shuffle
 

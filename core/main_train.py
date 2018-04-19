@@ -26,9 +26,7 @@ import time
 import numpy as np
 import pandas as pd
 
-import matplotlib.pyplot as plt
-
-from sklearn.preprocessing import normalize, scale
+from sklearn.preprocessing import normalize, scale, StandardScaler
 from sklearn.utils import resample
 from sklearn.decomposition import PCA
 from sklearn.metrics import f1_score
@@ -43,7 +41,6 @@ from classifiers.galaxy_classifiers.knn_classifier import KNNClassifier
 from sklearn.model_selection import StratifiedShuffleSplit
 from sklearn.model_selection import GridSearchCV
 from sklearn.ensemble import RandomForestClassifier
-from classifiers.music_genre_classifiers.random_forest_classifier import RandForestClassifier
 from sklearn.ensemble import VotingClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
@@ -54,7 +51,6 @@ music_labels = ["BIG_BAND", "BLUES_CONTEMPORARY", "COUNTRY_TRADITIONAL", "DANCE"
                 "METAL_DEATH", "METAL_HEAVY", "POP_CONTEMPORARY", "POP_INDIE", "POP_LATIN", "PUNK", "REGGAE",
                 "RNB_SOUL", "ROCK_ALTERNATIVE", "ROCK_COLLEGE", "ROCK_CONTEMPORARY", "ROCK_HARD",
                 "ROCK_NEO_PSYCHEDELIA"]
-
 
 def get_dataset(validation_size, strategy, csv_file):
     context = Context(strategy)
@@ -94,11 +90,14 @@ def balance_classes(file_name, labels, up_down_sample_n):
 
 
 # http://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.normalize.html
-def normalize_data(X):
+def standardize_data(X, feature_set_name=None):
     # X = normalize(X, axis=0, norm='max')
     # get_params save it to scale prediction dataset
-    X = scale(X)
-    return X
+    scaler = StandardScaler()
+    X_new = scaler.fit_transform(X)
+    if feature_set_name is not None:
+        pickle.dump(scaler, open(feature_set_name + '_scaler_obj.sav', 'wb'))
+    return X_new
 
 def get_knn_results(neighbors, weights, X_train, y_train, X_test, y_test):
     """ return knn results
@@ -259,13 +258,13 @@ def main():
                                                real_spectral_derivatives_file)
     dataset_sdd = get_dataset(0.2, MusicGenreSSDsStrategy(), real_ssd_file)
 
-    norm_train_mfcc = normalize_data(dataset_mfcc.train.get_features)
-    norm_valid_mfcc = normalize_data(dataset_mfcc.valid.get_features)
-    norm_train_spec_deriv = normalize_data(dataset_spectral_derivatives.train.get_features)
-    norm_valid_spec_deriv = normalize_data(dataset_spectral_derivatives.valid.get_features)
-    norm_train_ssd = normalize_data(dataset_sdd.train.get_features)
-    norm_valid_ssd = normalize_data(dataset_sdd.valid.get_features)
-
+    norm_train_mfcc = standardize_data(dataset_mfcc.train.get_features, 'mfcc')
+    norm_valid_mfcc = standardize_data(dataset_mfcc.valid.get_features)
+    norm_train_spec_deriv = standardize_data(dataset_spectral_derivatives.train.get_features, 'deriv')
+    norm_valid_spec_deriv = standardize_data(dataset_spectral_derivatives.valid.get_features)
+    norm_train_ssd = standardize_data(dataset_sdd.train.get_features, 'ssd')
+    norm_valid_ssd = standardize_data(dataset_sdd.valid.get_features)
+    # python main_predict.py /home/ens/AK86280/Documents/GTI770_lab1/project/data/music/untagged_feature_sets/ output.csv
     # https://towardsdatascience.com/pca-using-python-scikit-learn-e653f8989e60
     pca_mfcc = PCA(.95)
     pca_spec_deriv = PCA(.95)
@@ -336,9 +335,9 @@ def main():
     eclf_ssd.fit(norm_train_ssd, dataset_sdd.train.get_labels)
     print(eclf_ssd.score(norm_valid_ssd, dataset_sdd.valid.get_labels))
 
-    pickle.dump(eclf_mfcc, open('/models/mfcc_model', 'wb'))
-    pickle.dump(eclf_deriv, open('/models/deriv_model', 'wb'))
-    pickle.dump(eclf_ssd, open('/models/ssd_model', 'wb'))
+    pickle.dump(eclf_mfcc, open('mfcc_model.sav', 'wb'))
+    pickle.dump(eclf_deriv, open('deriv_model.sav', 'wb'))
+    pickle.dump(eclf_ssd, open('ssd_model.sav', 'wb'))
 
 
     #
