@@ -23,6 +23,7 @@ Notes : This file is to generate everything we want from feature vectors compute
 
 import os
 import numpy as np
+import time
 import pandas as pd
 
 import matplotlib.pyplot as plt
@@ -112,15 +113,16 @@ def get_knn_results(neighbors, weights, X_train, y_train, X_test, y_test):
     for neighbor in neighbors:
         for weight in weights:
             trained_knn_classifier = get_knn(X_train, y_train, neighbor, weight)
-            params = "n_neighbors=" + str(neighbor) + ";weights=" + weight
+            params = "n_neighbors=" + str(neighbor)
 
             y_pred = trained_knn_classifier.predict(X_test)
             y_true = y_test
 
             score_result = trained_knn_classifier.score(X_test, y_test)
+            train_score_result = trained_knn_classifier.score(X_train, y_train)
             f1_score_result = f1_score(y_true, y_pred, average='weighted')
-
-            results_knn.append([params, score_result, f1_score_result])
+            train_on_model_result = trained_knn_classifier.score(X_train, y_train)
+            results_knn.append([params, score_result, train_score_result, f1_score_result, train_on_model_result])
 
     return results_knn
 
@@ -209,6 +211,7 @@ def calculate_knn(name, neighbors_params, weights_params, X_train, y_train, X_te
 
 
 def main():
+    start_time = time.time()
     # mfcc classes mean = 7182.2 ~ 7200
     csv_path = os.environ["VIRTUAL_ENV"] + "/data/music/tagged_feature_sets/"
     mfcc_path = csv_path + "msd-jmirmfccs_dev/"
@@ -220,12 +223,12 @@ def main():
 
     classes_mean = 7200
 
-    remove_unused_columns(mfcc_path + "msd-jmirmfccs_dev.csv")
-    remove_unused_columns(spectral_derivatives_path + "msd-jmirderivatives_dev.csv")
-    remove_unused_columns(ssd_path + "msd-ssd_dev.csv")
-    balance_classes(real_mfcc_file, music_labels, classes_mean)
-    balance_classes(real_spectral_derivatives_file, music_labels, classes_mean)
-    balance_classes(real_ssd_file, music_labels, classes_mean)
+    # remove_unused_columns(mfcc_path + "msd-jmirmfccs_dev.csv")
+    # remove_unused_columns(spectral_derivatives_path + "msd-jmirderivatives_dev.csv")
+    # remove_unused_columns(ssd_path + "msd-ssd_dev.csv")
+    # balance_classes(real_mfcc_file, music_labels, classes_mean)
+    # balance_classes(real_spectral_derivatives_file, music_labels, classes_mean)
+    # balance_classes(real_ssd_file, music_labels, classes_mean)
 
     dataset_mfcc = get_dataset(0.2, MusicGenreJMIRMFCCsStrategy(), real_mfcc_file)
     dataset_spectral_derivatives = get_dataset(0.2, MusicGenreJMIRDERIVATIVESsStrategy(),
@@ -240,9 +243,11 @@ def main():
     norm_valid_ssd = normalize_data(dataset_sdd.valid.get_features)
 
     # https://towardsdatascience.com/pca-using-python-scikit-learn-e653f8989e60
-    pca_mfcc = PCA(.95)
-    pca_spec_deriv = PCA(.95)
-    pca_ssd = PCA(.95)
+    variance = 0.85
+
+    pca_mfcc = PCA(variance)
+    pca_spec_deriv = PCA(variance)
+    pca_ssd = PCA(variance)
 
     pca_mfcc.fit(norm_train_mfcc)
     pca_spec_deriv.fit(norm_train_spec_deriv)
@@ -260,7 +265,7 @@ def main():
     print(pca_ssd.explained_variance_ratio_)
     print(pca_ssd.singular_values_)
 
-    neighbors_params = [3, 7, 11, 15, 19, 21]
+    neighbors_params = [21]
     weights_params = ['distance']
 
     # Normalized feature sets
@@ -275,40 +280,41 @@ def main():
 
     # -------------------- MFCC --------------------
     # KNN
-    # calculate_knn("MFCC", neighbors_params, weights_params,
-    #               norm_train_mfcc, dataset_mfcc.train.get_labels,
-    #               norm_valid_mfcc, dataset_mfcc.valid.get_labels)
+    calculate_knn("MFCC", neighbors_params, weights_params,
+                  norm_train_mfcc, dataset_mfcc.train.get_labels,
+                  norm_valid_mfcc, dataset_mfcc.valid.get_labels)
 
     # NAIVES BAYES
-    calculate_naive_bayes("MFCC",
-                          norm_train_mfcc, dataset_mfcc.train.get_labels,
-                          norm_valid_mfcc, dataset_mfcc.valid.get_labels)
+    # calculate_naive_bayes("MFCC",
+    #                       norm_train_mfcc, dataset_mfcc.train.get_labels,
+    #                       norm_valid_mfcc, dataset_mfcc.valid.get_labels)
     # ---------------------------------------------------
 
     # -------------------- DERIVATES --------------------
     # KNN
-    # calculate_knn("DERIVATIVES", neighbors_params, weights_params,
-    #               norm_train_spec_deriv, dataset_spectral_derivatives.train.get_labels,
-    #               norm_valid_spec_deriv, dataset_spectral_derivatives.valid.get_labels)
+    calculate_knn("DERIVATIVES", neighbors_params, weights_params,
+                  norm_train_spec_deriv, dataset_spectral_derivatives.train.get_labels,
+                  norm_valid_spec_deriv, dataset_spectral_derivatives.valid.get_labels)
 
     # NAIVES BAYES
-    calculate_naive_bayes("DERIVATIVES",
-                          norm_train_spec_deriv, dataset_spectral_derivatives.train.get_labels,
-                          norm_valid_spec_deriv, dataset_spectral_derivatives.valid.get_labels)
+    # calculate_naive_bayes("DERIVATIVES",
+    #                       norm_train_spec_deriv, dataset_spectral_derivatives.train.get_labels,
+    #                       norm_valid_spec_deriv, dataset_spectral_derivatives.valid.get_labels)
     # ---------------------------------------------------
 
     # -------------------- SDD--------------------
     # KNN
-    # calculate_knn("SDD", neighbors_params, weights_params,
-    #               norm_train_ssd, dataset_sdd.train.get_labels,
-    #               norm_valid_ssd, dataset_sdd.valid.get_labels)
+    calculate_knn("SDD", neighbors_params, weights_params,
+                  norm_train_ssd, dataset_sdd.train.get_labels,
+                  norm_valid_ssd, dataset_sdd.valid.get_labels)
 
     # NAIVES BAYES
-    calculate_naive_bayes("SDD",
-                          norm_train_ssd, dataset_sdd.train.get_labels,
-                          norm_valid_ssd, dataset_sdd.valid.get_labels)
+    # calculate_naive_bayes("SDD",
+    #                       norm_train_ssd, dataset_sdd.train.get_labels,
+    #                       norm_valid_ssd, dataset_sdd.valid.get_labels)
     # ---------------------------------------------------
 
+    print("--- %s seconds ---" % (time.time() - start_time))
     print("hello")
 
 
