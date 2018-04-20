@@ -141,7 +141,6 @@ class MusicGenreJMIRMFCCsStrategy:
 
         # Fit label encoder and return the classes encoded into integer in range [0,2]
         encoded_labels = label_encoder.fit_transform(labels).reshape(-1, 1)
-
         if one_hot == True:
             # Declare a one-hot encoder from scikit-learn.
             one_hot_encoder = OneHotEncoder(sparse=False)

@@ -26,7 +26,7 @@ import time
 import sys
 import pandas as pd
 import numpy as np
-
+from sklearn.preprocessing import LabelEncoder
 from sklearn.preprocessing import normalize, scale
 from sklearn.utils import resample
 from sklearn.decomposition import PCA
@@ -151,6 +151,8 @@ def main():
                 voted_predictions.append(ssd_pred)
 
     print(voted_predictions)
+    # label_encoder = LabelEncoder()
+    # results = label_encoder.inverse_transform(voted_predictions)
     results = convert_labels(voted_predictions)
     print(results)
     np.savetxt(output_file, results, delimiter=',', fmt='%s')
